@@ -9,10 +9,10 @@ import { icon, emblem, magicArt } from './art.js';
 import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js';
 import { getAlbum, albumDetailMarkup } from './album-gallery.js';
 import { createEffects } from './effects.js';
-import { createSoundPlayer } from './sounds.js';
+import { createSoundPlayer } from './sounds.js?v=20261012-2';
 import {roundSummaryMarkup} from './round-summary.js';
 import {companionMarkup, createCharacterReactions} from './character-reactions.js';
-import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js';
+import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261012-2';
 
 const STORAGE_KEY = 'nuanweiwei.math-garden.v1';
 const PROFILE_KEY = 'nuanweiwei.math-garden.profiles.v2';
