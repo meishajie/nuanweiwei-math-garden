@@ -26,7 +26,7 @@ export function getImmersiveStatus() {
 export function getInstallHint() {
   const status = getImmersiveStatus();
   if (status.standalone) return '已从主屏幕进入，和暖尾尾一起沉浸试玩。';
-  if (status.platform === 'ios') return '想从图标进入：用 Safari 打开，点「分享」，再点「添加到主屏幕」。以后从主屏幕的花园图标开玩。';
+  if (status.platform === 'ios') return '如果 Safari 不能直接全屏：点「分享」→「添加到主屏幕」，如有「作为网页 App 打开」选项请开启。以后从主屏幕的花园图标进入，不显示 Safari 地址栏。';
   if (status.platform === 'android') return '想从桌面进入：在浏览器菜单找「添加到主屏幕」。是否提供该选项取决于浏览器；也可以点游戏内的全屏按钮。';
   return '点全屏按钮进入沉浸模式；手机和 iPad 也可以添加主屏幕入口。';
 }

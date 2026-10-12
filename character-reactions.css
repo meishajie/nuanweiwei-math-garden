@@ -121,3 +121,21 @@
 @media (max-width: 330px) { .character-companion[data-kind=lesson] { --companion-size: 64px; } }
 @media (max-height: 360px) and (orientation: landscape) { .character-companion[data-kind=lesson] { --companion-size: 70px; } }
 @media (max-height: 300px) and (orientation: landscape) { .character-companion[data-kind=lesson] { --companion-size: 58px; } }
+
+/* A new wrong-answer event is visible without relying on text or red alone. */
+.problem-card.retry-feedback .question-companion { animation: retry-companion-emphasis 2.7s ease both; }
+.problem-card.retry-feedback .number-slot.filled,
+.problem-card.retry-feedback .answer.wrong { border-color:#ffcc78; background:#614433; box-shadow:0 0 0 4px #ffcc7840; animation:retry-slot-wiggle .45s ease both; }
+.problem-card.retry-feedback .feedback { color:#ffe0a3; font-size:clamp(16px,4vw,21px); font-weight:700; }
+.character-companion[data-mode=retry][data-motion=reduce] .cr-expression-encourage { display:none; }
+.character-companion[data-mode=retry][data-motion=reduce] .cr-expression-think { display:inline; }
+@keyframes retry-companion-emphasis { 0%,100% {transform:scale(1)} 18%,75% {transform:scale(1.2)} }
+@keyframes retry-slot-wiggle { 0%,100% {transform:translateX(0)} 25% {transform:translateX(-5px)} 50% {transform:translateX(5px)} 75% {transform:translateX(-3px)} }
+html[data-motion=reduce] .problem-card.retry-feedback .question-companion,
+html[data-motion=reduce] .problem-card.retry-feedback .number-slot.filled,
+html[data-motion=reduce] .problem-card.retry-feedback .answer.wrong { animation:none; }
+@media(prefers-reduced-motion:reduce) {
+ html:not([data-motion=full]) .problem-card.retry-feedback .question-companion,
+ html:not([data-motion=full]) .problem-card.retry-feedback .number-slot.filled,
+ html:not([data-motion=full]) .problem-card.retry-feedback .answer.wrong { animation:none; }
+}

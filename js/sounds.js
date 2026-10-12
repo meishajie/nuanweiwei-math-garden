@@ -9,7 +9,7 @@ export const MUSIC_LOOP_SECONDS = 24;
 // A fresh, inspectable score also lets offline listening use the exact same notes.
 export function getSoundScore(kind = 'correct') {
   if (kind === 'chest') return getSoundScore('treasure');
-  if (kind === 'retry') return [bell(0, 64, .3, .045), bell(.18, 62, .42, .034)];
+  if (kind === 'retry') return [bell(0, 64, .3, .11), bell(.18, 60, .42, .085)];
   if (kind === 'music' || kind === 'background') {
     // Original 80 BPM eight-bar miniature: soft felt notes and warm held triads.
     const chords = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62], [60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]];
@@ -69,6 +69,20 @@ export function createSoundPlayer({ enabled = false, onUnavailable = () => {} } 
   let revision = 0, effectRevision = 0, activated = false, outputMuted = true, lastError = null;
   let musicWanted = false, musicActive = false, musicTimer = null, musicPhase = 0, musicAnchor = 0, nextMusicAt = 0;
   let musicLevel = 1, duckUntil = 0;
+  let playbackSession, previousSessionType;
+  function usePlaybackSession() {
+    const session = browser.navigator?.audioSession;
+    if (!session) return;
+    try {
+      if (!playbackSession) previousSessionType = session.type;
+      session.type = 'playback'; playbackSession = session;
+    } catch { /* Older Safari can reject the optional Audio Session API. */ }
+  }
+  function releasePlaybackSession() {
+    if (!playbackSession) return;
+    try { if (playbackSession.type === 'playback') playbackSession.type = previousSessionType || 'auto'; } catch { /* Optional API. */ }
+    playbackSession = undefined;
+  }
   const voices = new Map();
   const wantsAudio = () => allowed && Boolean(preference());
   const canPlay = () => wantsAudio() && !paused && !disposed && !failed && !doc?.hidden;
@@ -137,6 +151,7 @@ export function createSoundPlayer({ enabled = false, onUnavailable = () => {} } 
   }
   function stop() { silence(false); }
   function suspend() {
+    releasePlaybackSession();
     if (context && ['running', 'interrupted'].includes(context.state)) {
       try { return Promise.resolve(context.suspend()).catch(() => false); } catch { /* Keep mute state. */ }
     }
@@ -204,7 +219,8 @@ export function createSoundPlayer({ enabled = false, onUnavailable = () => {} } 
   function unlock() {
     if (!canPlay()) return Promise.resolve(false);
     try {
-      if (!ensureContext()) return Promise.resolve(false);
+      usePlaybackSession();
+      if (!ensureContext()) { releasePlaybackSession(); return Promise.resolve(false); }
       if (activated && context.state === 'running') {
         openOutput(); if (musicWanted) startTimeline(); return Promise.resolve(true);
       }
@@ -392,7 +408,7 @@ export function createSoundPlayer({ enabled = false, onUnavailable = () => {} } 
   function onPageHide() { void pause(); }
   function destroy() {
     if (disposed) return;
-    disposed = true; stop(); removeContextListener();
+    disposed = true; stop(); releasePlaybackSession(); removeContextListener();
     doc?.removeEventListener('visibilitychange', onHidden);
     browser.removeEventListener?.('pagehide', onPageHide);
     if (context) { try { void Promise.resolve(context.close()).catch(() => {}); } catch { /* Already closed. */ } }
