@@ -1,0 +1,123 @@
+.character-companion {
+  --companion-size: 106px;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--companion-size);
+  max-width: 100%;
+  aspect-ratio: 1544 / 1230;
+  overflow: hidden;
+  contain: layout paint;
+  isolation: isolate;
+  pointer-events: none;
+  vertical-align: middle;
+}
+.character-companion[data-kind=hero] { --companion-size: 210px; }
+.character-companion[data-kind=reward] { --companion-size: 160px; }
+.character-companion[data-kind=mini] { --companion-size: 140px; }
+.character-companion .cr-stage { display: block; width: 100%; height: 100%; overflow: hidden; }
+.character-companion .cr-shadow { fill: #69517f; opacity: .2; transform-origin: 763px 1028px; }
+.character-companion .cr-actor { transform-origin: 744px 855px; }
+.character-companion .cr-head { transform-origin: 744px 566px; }
+.character-companion .cr-dress { transform-origin: 744px 566px; }
+.character-companion .cr-pony-left { transform-origin: 536px 238px; }
+.character-companion .cr-pony-right { transform-origin: 859px 224px; }
+.character-companion .cr-arm,
+.character-companion .cr-forearm,
+.character-companion .cr-leg,
+.character-companion .cr-foot-left,
+.character-companion .cr-foot-right { transform-origin: 0 0; }
+.character-companion .cr-arm path,
+.character-companion .cr-leg path { fill: none; stroke: #292928; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; }
+.character-companion .cr-hand { fill: #282828; }
+.character-companion .cr-leg ellipse { fill: #ee9fcb; stroke: #282828; stroke-width: 11; }
+.character-companion .cr-face-lines { fill: none; stroke: #282828; stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+.character-companion .cr-look { stroke-width: 26; }
+.character-companion .cr-brow { stroke-width: 9; }
+.character-companion .cr-happy-mouth { fill: #302833; stroke-width: 10; }
+.character-companion .cr-tongue { stroke: #eca5bc; stroke-width: 14; }
+.character-companion .cr-expression,
+.character-companion .cr-blink { display: none; }
+.character-companion[data-mode=idle] .cr-expression-idle,
+.character-companion[data-mode=correct] .cr-expression-correct,
+.character-companion[data-mode=retry][data-phase=think] .cr-expression-think,
+.character-companion[data-mode=retry][data-phase=encourage] .cr-expression-encourage,
+.character-companion[data-mode=retry][data-phase=rest] .cr-expression-encourage { display: inline; }
+.character-companion .cr-wishes { fill: #f4d581; opacity: 0; }
+.character-companion .cr-wish-one { transform-origin: 324px 404px; }
+.character-companion .cr-wish-two { transform-origin: 1145px 596px; }
+.character-companion .cr-wish-three { transform-origin: 996px 190px; }
+
+/* Different rest poses remain visible after the short response has finished. */
+.character-companion[data-mode=idle] .cr-arm-left { transform: rotate(-27deg); }
+.character-companion[data-mode=idle] .cr-forearm-left { transform: rotate(-17deg); }
+.character-companion[data-mode=idle] .cr-arm-right { transform: rotate(72deg); }
+.character-companion[data-mode=idle] .cr-forearm-right { transform: rotate(-30deg); }
+.character-companion[data-mode=idle] .cr-leg-right { transform: rotate(34deg); }
+.character-companion[data-mode=correct] .cr-arm-left { transform: rotate(8deg); }
+.character-companion[data-mode=correct] .cr-forearm-left { transform: rotate(-10deg); }
+.character-companion[data-mode=correct] .cr-arm-right { transform: rotate(-6deg); }
+.character-companion[data-mode=correct] .cr-leg-right { transform: rotate(-13deg); }
+.character-companion[data-mode=correct] .cr-head { transform: rotate(-3deg); }
+.character-companion[data-mode=correct] .cr-wishes { opacity: .88; }
+.character-companion[data-mode=retry] .cr-arm-left { transform: rotate(-27deg); }
+.character-companion[data-mode=retry] .cr-forearm-left { transform: rotate(-18deg); }
+.character-companion[data-mode=retry] .cr-arm-right { transform: rotate(72deg); }
+.character-companion[data-mode=retry] .cr-forearm-right { transform: rotate(-30deg); }
+.character-companion[data-mode=retry] .cr-leg-right { transform: rotate(34deg); }
+.character-companion[data-mode=retry] .cr-head { transform: rotate(3deg); }
+
+/* Idle breathing, one short friendly wave and one blink per long quiet cycle. */
+.character-companion[data-mode=idle][data-motion=full] .cr-actor { animation: cr-breathe 4.5s ease-in-out infinite; }
+.character-companion[data-mode=idle][data-motion=full] .cr-pony { animation: cr-idle-pony 6s ease-in-out infinite; }
+.character-companion[data-mode=idle][data-motion=full] .cr-pony-right { animation-delay: -2s; }
+.character-companion[data-mode=idle][data-motion=full] .cr-forearm-right { animation: cr-idle-wave 10s ease-in-out infinite; }
+.character-companion[data-mode=idle][data-motion=full] .cr-blink { display: inline; animation: cr-blink 6.7s linear infinite; }
+
+.character-companion[data-mode=correct].cr-playing .cr-actor { animation: cr-celebrate-hop 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-shadow { animation: cr-hop-shadow 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-arm-left { animation: cr-cheer-left 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-arm-right { animation: cr-cheer-right 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-forearm-left { animation: cr-cheer-palm 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-leg-left { animation: cr-step-left 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-leg-right { animation: cr-step-right 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-head { animation: cr-cheer-head 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-pony-left { animation: cr-cheer-pony-left 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-pony-right { animation: cr-cheer-pony-right 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-dress { animation: cr-cheer-dress 1.9s ease-in-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-wishes { animation: cr-wishes 1.9s ease-out both; }
+.character-companion[data-mode=correct].cr-playing .cr-wish { animation: cr-wish-turn 1.9s ease-out both; }
+.character-companion[data-mode=retry].cr-playing .cr-head { animation: cr-think-head 2.65s ease-in-out both; }
+.character-companion[data-mode=retry].cr-playing .cr-arm-right { animation: cr-think-hand 2.65s ease-in-out both; }
+.character-companion[data-mode=retry].cr-playing .cr-forearm-right { animation: cr-think-elbow 2.65s ease-in-out both; }
+.character-companion[data-mode=retry].cr-playing .cr-pony-left { animation: cr-think-pony 2.65s ease-in-out both; }
+.character-companion[data-mode=retry].cr-playing .cr-pony-right { animation: cr-think-pony 2.65s ease-in-out reverse both; }
+
+@keyframes cr-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-13px); } }
+@keyframes cr-idle-pony { 0%,100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+@keyframes cr-idle-wave { 0%, 70%, 100% { transform: rotate(-30deg); } 76%, 86% { transform: rotate(-43deg); } 81%, 91% { transform: rotate(-20deg); } }
+@keyframes cr-blink { 0%, 43%, 46%, 100% { opacity: 0; } 44%, 45% { opacity: 1; } }
+@keyframes cr-celebrate-hop { 0%,100% { transform: translateY(0); } 15% { transform: translateY(12px); } 30% { transform: translateY(-80px); } 43% { transform: translateY(0); } 63% { transform: translateY(-48px); } 76% { transform: translateY(0); } }
+@keyframes cr-hop-shadow { 0%,100% { transform: scaleX(1); opacity:.2; } 30%,63% { transform: scaleX(.8); opacity:.12; } }
+@keyframes cr-cheer-left { 0%,100% { transform: rotate(8deg); } 27%,63% { transform: rotate(19deg); } 44%,79% { transform: rotate(0deg); } }
+@keyframes cr-cheer-right { 0%,100% { transform: rotate(-6deg); } 28%,62% { transform: rotate(-24deg); } 44%,80% { transform: rotate(7deg); } }
+@keyframes cr-cheer-palm { 0%,100% { transform: rotate(-10deg); } 30%,63% { transform: rotate(-14deg); } 45%,78% { transform: rotate(-5deg); } }
+@keyframes cr-step-left { 0%,100% { transform: rotate(0); } 30%,63% { transform: rotate(9deg); } 44%,80% { transform: rotate(-5deg); } }
+@keyframes cr-step-right { 0%,100% { transform: rotate(-13deg); } 30%,63% { transform: rotate(-27deg); } 44%,80% { transform: rotate(-4deg); } }
+@keyframes cr-cheer-head { 0%,100% { transform: rotate(-3deg); } 30%,63% { transform: rotate(-7deg); } 44%,80% { transform: rotate(1deg); } }
+@keyframes cr-cheer-pony-left { 0%,100% { transform: rotate(0); } 30%,63% { transform: rotate(8deg); } 44%,80% { transform: rotate(-4deg); } }
+@keyframes cr-cheer-pony-right { 0%,100% { transform: rotate(0); } 30%,63% { transform: rotate(-6deg); } 44%,80% { transform: rotate(4deg); } }
+@keyframes cr-cheer-dress { 0%,100% { transform: rotate(0); } 30%,63% { transform: rotate(-3deg); } 44%,80% { transform: rotate(2deg); } }
+@keyframes cr-wishes { 0% { opacity:.15; } 30%,65% { opacity:1; } 100% { opacity:.88; } }
+@keyframes cr-wish-turn { 0% { transform: scale(.8) rotate(-12deg); } 60% { transform: scale(1) rotate(12deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes cr-think-head { 0%,100% { transform: rotate(3deg); } 15%,35% { transform: translateY(15px) rotate(7deg); } 57%,80% { transform: rotate(-2deg); } }
+@keyframes cr-think-hand { 0%,100% { transform: rotate(72deg); } 15%,35% { transform: rotate(-7deg); } 60%,80% { transform: rotate(58deg); } }
+@keyframes cr-think-elbow { 0%,100% { transform: rotate(-30deg); } 15% { transform: rotate(-20deg); } 24% { transform: rotate(-13deg); } 34% { transform: rotate(-25deg); } 60%,80% { transform: rotate(-12deg); } }
+@keyframes cr-think-pony { 0%,100% { transform: rotate(0); } 15%,35% { transform: rotate(3deg); } 57%,80% { transform: rotate(-2deg); } }
+
+.character-companion.cr-paused *,
+.character-companion[data-motion=reduce] * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { html:not([data-motion=full]) .character-companion * { animation: none !important; } }
+@media (max-width: 380px) { .character-companion[data-kind=lesson] { --companion-size: 76px; } }
+@media (max-width: 330px) { .character-companion[data-kind=lesson] { --companion-size: 64px; } }
+@media (max-height: 360px) and (orientation: landscape) { .character-companion[data-kind=lesson] { --companion-size: 70px; } }
+@media (max-height: 300px) and (orientation: landscape) { .character-companion[data-kind=lesson] { --companion-size: 58px; } }

@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "暖尾尾的数字魔法花园",
+  "short_name": "暖尾尾花园",
+  "description": "和暖尾尾一起修复魔法花园，收集魔法卡，开启百宝箱。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#261542",
+  "theme_color": "#261542",
+  "icons": [
+    {
+      "src": "./assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

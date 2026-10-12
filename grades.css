@@ -1,0 +1,109 @@
+/* Short grade choices and a picture of the actual card task. */
+.thousand-block { display: grid; place-items: center; width: 72px; height: 66px; border: 2px solid #ae88c8; border-radius: 10px; background: #decaf0; box-shadow: 6px -6px #c4a6dc; color: #76518f; font-size: 16px; }
+.home-stage { grid-template-rows: auto auto auto minmax(0,1fr); }
+.grade-picker { display: flex; gap: 8px; justify-content: center; }
+.grade-choice { flex: 1; max-width: 260px; min-height: 44px; border-radius: 14px; border: 1px solid #dbcae43a; background: #ffffff09; color: #c4b2d6; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.grade-choice b { font-size: 23px; font-weight: 500; }
+.grade-choice span { font-size: 12px; }
+.grade-choice[aria-pressed=true] { background: #f0e3ff; color: #74518b; border-color: #f7e5ff; }
+.home-welcome p { font-size: 11px; }
+.home-actions { flex-wrap: wrap; }
+.play-reward-shortcut { min-height: 44px; border-radius: 16px; color: #ffdfa6; background: #5f4268; }
+.home-stage.has-play-reward { grid-template-rows: auto auto auto auto minmax(0,1fr); }
+.practice-progress { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.practice-progress .practice-dot { width: 23px; height: 23px; border-radius: 8px; border: 1px solid #d6bfd149; color: #b9a3c5; display: grid; place-items: center; }
+.practice-progress .practice-dot.filled { background: #ffde91; color: #6f4d61; border-color: #ffde91; }
+.practice-progress .icon { width: 16px; height: 16px; }
+.play-reward-shortcut .icon { width: 19px; height: 19px; }
+
+body[data-view=lesson] .card-puzzle { width: min(780px,100%); display: flex; flex-direction: column; align-items: center; gap: clamp(20px,4dvh,38px); }
+.slot-sum { display: flex; justify-content: center; align-items: center; width: 100%; gap: 8px; }
+.slot-team { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
+.number-slot { width: clamp(46px,8vw,82px); height: clamp(58px,9dvh,92px); min-height: 44px; flex: none; border: 2px dashed #bca5d0; border-radius: 16px; display: grid; place-items: center; background: #f5effa; color: #775493; font-size: 35px; padding: 0; }
+.number-slot.filled { border-style: solid; border-color: #b398c9; background: #ece0f8; cursor: pointer; animation: slot-arrive .18s ease-out; }
+.number-slot.next-empty { border-color: #9f76bc; box-shadow: inset 0 0 0 3px #dfceef29; }
+.slot-operator { color: #a590b7; font-size: 26px; flex: none; }
+.slot-goal { min-width: 58px; max-width: 130px; text-align: center; font-size: clamp(38px,5vw,60px); color: #725188; }
+.slot-goal.goal-lit { color: #51805c; }
+.number-slot[data-digits='3'] { font-size: 28px; }
+.number-slot[data-digits='4'] { font-size: 23px; }
+.slot-goal[data-digits='4'] { font-size: 32px; }
+.number-slot:disabled { cursor: default; }
+body[data-view=lesson] .card-puzzle .number-card-deck { width: 100%; }
+body[data-view=lesson] .card-puzzle .number-card.selected { opacity: .5; background: #ece6ef; border-color: #c6b6d1; transform: none; }
+body[data-view=lesson] .number-card[data-digits='3'] { font-size: 28px; }
+body[data-view=lesson] .number-card[data-digits='4'] { font-size: 23px; }
+body[data-view=lesson] .answer[data-digits='4'] { font-size: 26px; }
+body[data-view=lesson] .story-question { max-width: 680px; color: #5d476b; font-size: clamp(18px,2.5vw,25px); line-height: 1.85; text-align: left; padding: 0 12px; }
+.column-method { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.column-formula { display: flex; flex-direction: column; width: max-content; min-width: 140px; font-variant-numeric: tabular-nums; font-size: 34px; line-height: 1.55; color: #6c527a; text-align: right; letter-spacing: .18em; padding: 6px 16px; border-radius: 14px; background: #f8f2fc; }
+.column-bottom { border-bottom: 2px solid #bba2c7; }
+.column-result { color: #5d8559; }
+.column-steps { margin: 0; padding-left: 22px; font-size: 13px; line-height: 1.9; }
+.hint-tabs button { min-width: 0; font-size: 12px; padding: 8px; gap: 5px; }
+.hint-tabs .icon { width: 17px; height: 17px; }
+@keyframes slot-arrive { from { transform: scale(.88); opacity: .65; } to { transform: none; opacity: 1; } }
+
+@media(max-width:600px) {
+  .home-stage { gap: 7px; }
+  .grade-choice { min-height: 44px; }
+  .grade-choice b { font-size: 21px; }
+  .number-slot { width: clamp(44px,11vw,62px); height: 62px; border-radius: 13px; font-size: 29px; }
+  .slot-sum,.slot-team { gap: 5px; }
+  .slot-operator { font-size: 19px; }
+  .slot-goal { min-width: 44px; font-size: 34px; }
+  .number-slot[data-digits='3'] { font-size: 21px; }
+  .number-slot[data-digits='4'] { font-size: 17px; }
+  .slot-goal[data-digits='3'] { font-size: 27px; }
+  .slot-goal[data-digits='4'] { font-size: 23px; }
+  body[data-view=lesson] .story-question { font-size: 18px; padding: 0 4px; }
+  body[data-view=lesson] .large-equation { font-size: clamp(24px,7.5vw,43px); gap: 7px; }
+  body[data-view=lesson] .answer[data-digits='3'] { font-size: 27px; }
+  body[data-view=lesson] .answer[data-digits='4'] { font-size: 22px; }
+  body[data-view=lesson] .number-card[data-digits='3'] { font-size: 26px; }
+  body[data-view=lesson] .number-card[data-digits='4'] { font-size: 21px; }
+}
+@media(max-height:550px) and (orientation:landscape) {
+  .home-stage { grid-template-columns: 1fr 2fr; grid-template-rows: auto auto minmax(0,1fr); }
+  .home-welcome { grid-row: 1; }
+  .grade-picker { grid-column: 1; grid-row: 2; }
+  .home-actions { grid-column: 1; grid-row: 3; }
+  .compact-map { grid-column: 2; grid-row: 1/4; }
+  .home-stage.has-play-reward { grid-template-rows: auto auto auto minmax(0,1fr); }
+  .home-stage.has-play-reward .play-reward-shortcut { grid-column: 1; grid-row: 4; }
+  .home-stage.has-play-reward .compact-map { grid-row: 1/5; }
+  body[data-view=lesson] .card-puzzle { gap: 12px; }
+  .number-slot { width: 54px; height: 46px; font-size: 27px; border-radius: 11px; }
+  .slot-operator { font-size: 18px; }
+  .slot-goal { font-size: 31px; }
+  body[data-view=lesson] .story-question { font-size: 17px; line-height: 1.7; }
+}
+@media(max-height:300px) and (orientation:landscape) {
+  .home-stage, .home-stage.has-play-reward { grid-template-columns: 1fr 2fr; grid-template-rows: 34px 44px minmax(44px,1fr); }
+  .home-stage.has-play-reward { grid-template-rows: 34px 44px 44px minmax(44px,1fr); }
+  .home-welcome { padding: 0; }
+  .home-welcome img { width: 36px; height: 30px; }
+  .home-welcome h1 { font-size: 14px; }
+  .home-welcome p { font-size: 9px; }
+  .home-actions { display: grid; grid-template-columns: 1fr 1fr; padding: 0; gap: 6px; flex-wrap: nowrap; align-self: end; height: 44px; }
+  .home-actions button { min-height: 44px; height: 44px; padding: 4px; font-size: 12px; }
+  .home-actions .icon { width: 16px; height: 16px; }
+  .home-stage.has-play-reward .play-reward-shortcut { min-height: 44px; height: 44px; }
+  body[data-view=lesson] .has-card-puzzle .card-puzzle { display: grid; grid-template-columns: minmax(200px,1fr) minmax(0,1.3fr); gap: 10px; }
+  .slot-sum { grid-column: 1; }
+  body[data-view=lesson] .card-puzzle .number-card-deck { grid-column: 2; grid-row: 1; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+  .number-slot { width: 44px; height: 48px; font-size: 24px; }
+  .slot-team,.slot-sum { gap: 4px; }
+  .slot-goal { min-width: 38px; font-size: 28px; }
+  .slot-operator { font-size: 17px; }
+  body[data-view=lesson] .number-card { height: 44px; min-height: 44px; font-size: 23px; }
+}
+html[data-motion=reduce] .number-slot { animation: none; }
+@media(max-width:360px) and (max-height:680px) {
+  .compact-map { grid-template-rows: repeat(5,minmax(44px,1fr)); }
+  .focus-level { min-height: 44px; padding: 4px 6px; gap: 5px; }
+  .focus-level .emblem { width: 30px; height: 30px; }
+  .focus-level-copy strong { font-size: 12px; }
+  .focus-level-copy small { font-size: 9px; }
+}
+@media(prefers-reduced-motion:reduce) { .number-slot { animation: none; } }

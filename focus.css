@@ -1,0 +1,364 @@
+/* One task per screen. The action area never grows with the explanation. */
+body[data-view] {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  color: #fff8ef;
+  background: linear-gradient(145deg, #241d3be8, #302440df), url('./assets/magic-garden-v2.webp') center / cover fixed;
+}
+body[data-view] #app { height: 100%; }
+body[data-view] .shell {
+  width: min(1160px, calc(100% - 32px));
+  height: calc(100dvh - env(safe-area-inset-top));
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+body[data-view] .site-header { min-height: 52px; height: 52px; flex: none; border: 0; flex-wrap: nowrap; }
+body[data-view] .brand { min-height: 44px; }
+body[data-view] .brand-note, body[data-view] .main-nav, body[data-view] .footer { display: none; }
+body[data-view] .brand-name { font-size: 14px; color: #f6edff; }
+body[data-view] .brand-mark { width: 32px; height: 32px; background: transparent; color: #ffdda0; }
+body[data-view] .header-tools { gap: 4px; }
+body[data-view] .tool-button, .focus-tool { display: grid; place-items: center; padding: 0; min-width: 44px; width: 44px; height: 44px; min-height: 44px; border: 0; border-radius: 15px; color: #eadff6; background: transparent; }
+body[data-view] .tool-button.wide { display: grid; padding: 0; min-width: 44px; width: 44px; border-radius: 15px; }
+body[data-view] .tool-button.wide span { display: none; }
+body[data-view] #main { flex: 1; min-height: 0; overflow: auto; padding: 0; }
+body[data-view] .primary { min-height: 48px; background: #9870c4; color: white; box-shadow: none; border-radius: 17px; }
+body[data-view] .secondary { min-height: 44px; border-radius: 17px; }
+body[data-view] .primary:disabled { opacity: .43; }
+body[data-view] .storage-warning { flex: none; max-height: 50px; overflow: auto; margin: 0; font-size: 11px; padding: 6px 10px; }
+
+/* The garden is a compact chooser, with the next trip always at the top. */
+body[data-view=home] #main { overflow: hidden; }
+.home-stage { height: 100%; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 12px; max-width: 950px; margin: auto; }
+.home-welcome { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 8px; }
+.home-welcome img { width: 96px; height: 84px; object-fit: contain; }
+.home-welcome h1 { font-size: clamp(23px, 3vw, 32px); letter-spacing: 0; }
+.home-welcome p { color: #dfd0eb; font-size: 13px; margin-top: 4px; }
+.home-actions { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; }
+.home-actions .primary, .home-actions .secondary { width: 100%; }
+.home-actions .secondary { color: #e7d7f5; background: #ffffff0c; border-color: #dfcaff33; }
+.compact-map { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(54px, 1fr)); gap: 8px; overflow: auto; padding: 2px; }
+.focus-level { min-height: 54px; display: flex; align-items: center; gap: 8px; text-align: left; border: 1px solid #ddc5ed35; border-radius: 18px; background: #fffaf0ed; color: #594566; padding: 8px 10px; }
+.focus-level-number { color: #9d8aaa; font-size: 11px; }
+.focus-level .emblem { width: 38px; height: 38px; flex: none; }
+.focus-level-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.focus-level-copy strong { font-size: 14px; }
+.focus-level-copy small { font-size: 10px; color: #8b7696; }
+.focus-level.level-lit { background: #f1e9d7; border-color: #e5cda5; }
+.focus-level.level-lit small { color: #7b764d; }
+
+/* No extra site toolbar while answering. */
+body[data-view=lesson] .shell { width: min(980px, calc(100% - 32px)); }
+body[data-view=lesson] #main { display: flex; flex-direction: column; overflow: hidden; }
+.lesson-head { flex: none; min-height: 58px; height: 58px; display: flex; gap: 8px; padding: 4px 0; margin: 0; }
+.lesson-head .lesson-progress { width: auto; max-width: none; min-width: 0; flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.lesson-avatar { height: 38px; width: 38px; flex: none; object-fit: contain; }
+.lesson-place { font-size: 14px; white-space: nowrap; }
+.companion-energy-target { display: flex; gap: 5px; align-items: center; color: #ffdea3; white-space: nowrap; }
+.companion-energy-target .icon { width: 19px; height: 19px; }
+.companion-energy-target b { font-size: 13px; font-weight: 400; }
+.lesson-tools { display: flex; flex: none; gap: 2px; }
+body[data-view=lesson] .problem-card {
+  flex: 1; width: 100%; min-height: 0; max-height: none; overflow: hidden;
+  display: flex; flex-direction: column; padding: clamp(14px, 2.5vw, 32px);
+  background: #fffdf8; border: 0; border-radius: 26px; box-shadow: 0 14px 42px #130b252b;
+}
+.problem-content { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(18px, 4dvh, 42px); }
+body[data-view=lesson] .equation { flex: none; margin: 0; width: 100%; font-size: clamp(42px, 7vw, 76px); gap: clamp(10px, 2vw, 22px); flex-wrap: nowrap; }
+body[data-view=lesson] .equation .symbol { font-size: .7em; }
+body[data-view=lesson] .equation .blank { min-width: 1.2em; height: 1.3em; border-radius: 20px; }
+body[data-view=lesson] .answers { width: min(660px, 100%); grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+body[data-view=lesson] .answer { height: clamp(66px, 10dvh, 98px); min-height: 56px; font-size: clamp(30px, 4vw, 44px); border: 2px solid #ded3e8; border-radius: 19px; box-shadow: none; background: #fcf9ff; }
+body[data-view=lesson] .answer.right { border-color: #75b785; background: #dff3df; color: #427549; }
+body[data-view=lesson] .answer.wrong { opacity: .45; animation: answer-nudge .28s ease-out; }
+.lesson-actions { flex: none; min-height: 82px; display: flex; flex-direction: column; justify-content: end; gap: 8px; padding-top: 12px; margin: 0; }
+body[data-view=lesson] .feedback { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; min-height: 24px; line-height: 1.4; margin: 0; padding: 0; font-size: 15px; background: transparent; }
+body[data-view=lesson] .feedback.correct { color: #477c51; }
+body[data-view=lesson] .feedback.retry { color: #8b6b92; }
+.lesson-action-buttons { display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%; }
+.lesson-action-buttons button { flex: 1; max-width: 440px; padding: 10px 16px; min-height: 48px; font-size: 15px; }
+body[data-view=lesson] .lesson-action-buttons button { min-width: 0; }
+.lesson-action-buttons .text-button { flex: none; color: #8d719e; min-width: 130px; }
+.lesson-action-buttons .secondary { color: #826398; border-color: #e0d4e8; background: transparent; }
+body[data-view=lesson] .card-puzzle { width: min(760px, 100%); margin: 0; }
+body[data-view=lesson] .target-sigil { gap: 12px; margin: 0 0 20px; }
+body[data-view=lesson] .target-sigil>span { font-size: 16px; }
+body[data-view=lesson] .target-number { border: 0; background: transparent; box-shadow: none; font-size: 56px; padding: 0; min-width: 0; }
+body[data-view=lesson] .number-card-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+body[data-view=lesson] .number-card { min-height: 76px; height: clamp(76px, 12dvh, 120px); font-size: 36px; gap: 0; padding: 8px; box-shadow: none; }
+body[data-view=lesson] .card-selection-note { margin: 14px 0 0; font-size: 13px; min-height: 20px; }
+body[data-view=lesson] .chain-equation { font-size: clamp(29px, 5.7vw, 58px); gap: clamp(5px, 1.6vw, 18px); }
+@keyframes answer-nudge { 30% { transform: translateX(-4px); } 70% { transform: translateX(4px); } }
+
+/* Help is deliberately requested, and occupies a bounded dialog. */
+body .modal-backdrop { z-index: 200; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.modal.settings-dialog { width: 100%; max-width: 540px; max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; overflow: hidden; padding: 24px; }
+.settings-dialog h2 { margin: 0; font-size: 23px; }
+.settings-dialog .setting-row { margin: 0; padding: 8px 0; min-height: 44px; flex: none; }
+.settings-dialog .modal-actions { margin: 0; flex: none; }
+.settings-dialog .modal-actions .primary { width: 100%; }
+.settings-links { display: flex; flex-direction: column; gap: 2px; margin: 6px 0; }
+.settings-links button { min-height: 44px; justify-content: start; color: #76598c; }
+.modal.lesson-help { max-width: 660px; width: 100%; max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; overflow: hidden; padding: 24px; gap: 14px; }
+.lesson-help h2 { flex: none; padding-right: 30px; font-size: 21px; }
+.hint-tabs { display: flex; flex: none; gap: 10px; }
+.hint-tabs button { min-height: 44px; flex: 1; justify-content: center; padding: 10px; font-size: 14px; }
+.hint-tabs button[aria-pressed=true] { background: #ece1f6; border-color: #bb9ccc; color: #77508b; }
+.lesson-help .hint-panel { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 16px; }
+.lesson-help .hint-panel h2 { font-size: 16px; margin-bottom: 12px; padding: 0; }
+.lesson-help .hint-panel p { font-size: 13px; }
+.lesson-help .modal-actions { flex: none; margin: 0; }
+.lesson-help .modal-actions .primary { width: 100%; min-height: 48px; }
+.lesson-help .ten-frame { grid-template-columns: repeat(5, 30px); grid-template-rows: repeat(2, 30px); padding: 6px; gap: 4px; }
+.lesson-help .dot { width: 22px; height: 22px; }
+.lesson-help .number-line { width: 100%; height: auto; }
+
+/* Entry and reward scenes reserve their actions before sizing the artwork. */
+body:is([data-view=intro],[data-view=reward],[data-view=rest],[data-view=vault]) #main { overflow: hidden; }
+.intro-stage, .reward-stage { position: relative; height: 100%; min-height: 0; width: min(880px, 100%); margin: auto; padding: 20px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 16px; text-align: center; border-radius: 26px; background: #fff8ef0a; }
+.intro-heading h1, .reward-heading h1 { font-size: clamp(25px, 3.5vw, 36px); margin: 6px 0; letter-spacing: 0; }
+.intro-heading p, .reward-heading p { font-size: 13px; color: #d9cbe4; line-height: 1.65; }
+.intro-heading p:first-child { color: #e7c990; font-size: 11px; }
+.intro-scene { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; min-height: 0; }
+.intro-scene img { min-height: 0; max-height: 65%; width: min(70%, 340px); object-fit: contain; }
+.intro-scene .intro-sample { color: #e5caff; background: transparent; margin: 0; padding: 6px; border: 0; font-size: clamp(24px, 4vw, 36px); }
+.intro-actions { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+.intro-actions button { width: 100%; }
+.intro-actions .secondary, .reward-actions .secondary { color: #e7d5f4; border-color: #dcc6ed38; background: #ffffff08; }
+.reward-stage { overflow: hidden; background: linear-gradient(145deg, #382150bb, #36274399); }
+.reward-stage .reward-display { min-height: 0; max-height: 100%; margin: 0; gap: 30px; }
+.reward-stage .reward-dancer { width: min(44%, 310px); max-height: 100%; object-fit: contain; }
+.reward-stage .spell-card { width: min(40%, 170px); min-height: 0; max-height: 100%; padding: 16px; height: auto; }
+.reward-stage .spell-card .emblem { width: 80px; height: 80px; }
+.reward-stage .spell-card p, .reward-stage .spell-card .card-action { display: none; }
+.reward-stage .reward-actions { margin: 0; flex: none; gap: 10px; display: flex; flex-wrap: nowrap; }
+.reward-stage .reward-actions button { min-width: 0; flex: 1; min-height: 48px; font-size: 14px; padding: 10px 12px; }
+.reward-stage .reward-actions .primary { flex: 1.6; background: #efce8e; color: #513255; }
+body[data-view=rest] #main { display: grid; place-items: center; }
+body[data-view=rest] .rest-card { margin: 0; padding: 18px; width: min(620px, 100%); }
+body[data-view=rest] .rest-card h1 { font-size: 26px; }
+body[data-view=rest] .rest-card p { color: #d6c8e2; font-size: 13px; margin: 12px 0 24px; }
+body[data-view=rest] .rest-card .secondary { color: #d6c8e2; margin-top: 10px; width: 100%; }
+
+.vault-stage { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 12px; }
+.vault-heading { display: flex; align-items: center; justify-content: space-between; padding: 8px; }
+.vault-heading h1 { font-size: 26px; }
+.vault-heading p { color: #e2c6f0; font-size: 15px; }
+.vault-actions { display: flex; gap: 10px; flex: none; }
+.vault-actions button { flex: 1; min-height: 48px; font-size: 14px; padding: 10px; }
+.vault-actions .secondary { color: #eedba9; background: #ffffff0a; border-color: #cfaa7440; }
+body[data-view=vault] .vault-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(55px, 1fr)); gap: 9px; margin: 0; overflow: auto; padding: 2px; }
+body[data-view=vault] .spell-card { min-height: 0; height: 100%; padding: 10px; display: grid; grid-template-columns: 45px minmax(0, 1fr); grid-template-rows: 1fr 1fr; gap: 2px 8px; align-content: center; text-align: left; border-radius: 20px; }
+body[data-view=vault] .spell-card .emblem { grid-row: 1/3; align-self: center; width: 45px; height: 45px; margin: 0; }
+body[data-view=vault] .spell-card h3 { align-self: end; font-size: 16px; margin: 0; }
+body[data-view=vault] .spell-card .card-action { align-self: start; font-size: 10px; padding: 0; margin: 0; min-height: 0; }
+body[data-view=vault] .spell-card .card-action .icon { height: 12px; width: 12px; }
+body[data-view=vault] .spell-card .card-index, body[data-view=vault] .spell-card p { display: none; }
+
+/* The magic stage fills the remaining height, including when it ends. */
+body[data-view=magic] #main { display: flex; flex-direction: column; overflow: hidden; }
+body[data-view=magic] .magic-header { flex: none; min-height: 44px; height: 44px; margin: 0 0 6px; }
+body[data-view=magic] .magic-header h1 { font-size: 23px; }
+body[data-view=magic] .magic-header .text-button { min-height: 44px; font-size: 12px; padding: 6px; }
+body[data-view=magic] .magic-view { flex: 1; width: 100%; height: auto; min-height: 0; max-height: 100%; margin: 0; border-radius: 24px; }
+body[data-view=magic] .magic-backdrop, body[data-view=magic] .magic-art { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; max-height: 100%; object-fit: cover; }
+body[data-view=magic] .casting-character { width: min(44%, 300px); max-height: 47%; bottom: 12%; left: 50%; }
+body[data-view=magic] .casting-ring { --orbit-radius: clamp(56px, 17dvh, 152px); width: calc(var(--orbit-radius) * 2); height: calc(var(--orbit-radius) * 2); top: 44%; left: 50%; }
+body[data-view=magic] .casting-orbit>span { width: 40px; height: 40px; transform: translate(-50%, -50%) rotate(calc(var(--glyph) * 45deg)) translateY(calc(var(--orbit-radius) * -1)) rotate(calc(var(--glyph) * -45deg)); }
+body[data-view=magic] .spell-focus { top: 10%; left: 50%; }
+body[data-view=magic] .spell-focus .emblem { width: clamp(58px, 12dvh, 106px); height: clamp(58px, 12dvh, 106px); }
+body[data-view=magic] .magic-story { position: absolute; bottom: 10px; left: 12px; right: 12px; z-index: 5; margin: 0; padding: 7px 10px; min-height: 0; border-radius: 16px; background: #21142f99; color: #f6e8fa; font-size: 13px; line-height: 1.5; }
+body[data-view=magic] .magic-controls { display: flex; flex: none; margin: 0; padding-top: 10px; gap: 10px; flex-wrap: nowrap; min-height: 58px; }
+body[data-view=magic] .magic-controls button { flex: 1; min-width: 0; min-height: 48px; padding: 9px 10px; font-size: 14px; }
+body[data-view=magic] .magic-controls .magic-next { flex: 1.6; min-width: 0; }
+
+/* The album wall remains expanded; return and celebration controls stay close. */
+body[data-view=treasure] #main { overflow: auto; }
+body[data-view=treasure] .treasure-heading { margin: 0 0 8px; min-height: 44px; }
+body[data-view=treasure] .treasure-heading h1 { font-size: 24px; }
+body[data-view=treasure] .treasure-heading p { display: none; }
+body[data-view=treasure] .treasure-stage { height: clamp(180px, 43dvh, 460px); min-height: 0; }
+body[data-view=treasure] .treasure-back { min-height: 44px; font-size: 12px; }
+body[data-view=treasure] .treasure-controls { margin: 10px 0 8px; }
+body[data-view=treasure] .treasure-controls button { min-height: 48px; }
+body[data-view=treasure] .treasure-status { margin: 0 0 18px; min-height: 0; font-size: 11px; }
+body[data-view=treasure] .album-gallery-copy>p, body[data-view=treasure] .album-gallery-note { display: none; }
+body[data-view=treasure] .album-gallery-copy h2 { font-size: 24px; }
+body[data-view=treasure] .treasure-gallery-copy>p, body[data-view=treasure] .treasure-guardian>p, body[data-view=treasure] .treasure-guardian-label { display: none; }
+body[data-view=treasure] .treasure-gallery-copy h2 { font-size: 22px; }
+body[data-view=grownups] #main { color: #514362; }
+body[data-view=grownups] .page-head { color: #ebd8f8; }
+
+@media (min-width: 700px) {
+  .compact-map { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(68px, 1fr)); }
+  .focus-level { flex-direction: column; justify-content: center; text-align: center; gap: 5px; }
+  .focus-level .emblem { width: 62px; height: 62px; }
+  .focus-level-number { position: absolute; opacity: 0; }
+  .focus-level-copy strong { font-size: 17px; }
+  body[data-view=lesson] .number-card-deck { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  body[data-view=vault] .vault-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(70px, 1fr)); }
+  body[data-view=vault] .spell-card { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+  body[data-view=vault] .spell-card .emblem { width: 80px; height: 80px; }
+  body[data-view=vault] .spell-card h3, body[data-view=vault] .spell-card .card-action { align-self: auto; }
+}
+@media (min-width: 1100px) {
+  .compact-map { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(80px, 1fr)); }
+}
+@media (max-width: 600px) {
+  body[data-view] .shell, body[data-view=lesson] .shell { width: calc(100% - 24px); }
+  .home-stage { gap: 9px; }
+  .home-welcome { padding: 0; gap: 12px; }
+  .home-welcome img { height: 67px; width: 74px; }
+  .home-welcome h1 { font-size: 24px; }
+  .home-welcome p { margin: 0; font-size: 11px; }
+  .home-actions button { font-size: 13px; min-height: 48px; padding: 10px; }
+  .lesson-head { height: 54px; min-height: 54px; gap: 4px; }
+  .lesson-head .lesson-progress { gap: 5px; justify-content: center; }
+  .lesson-avatar { width: 32px; height: 35px; }
+  .lesson-place { font-size: 12px; }
+  .companion-energy-target { gap: 3px; }
+  .companion-energy-target .icon { width: 15px; height: 15px; }
+  .companion-energy-target b { font-size: 11px; }
+  body[data-view=lesson] .problem-card { padding: 16px; border-radius: 23px; }
+  body[data-view=lesson] .equation { font-size: clamp(35px, 10.5vw, 54px); gap: 10px; }
+  body[data-view=lesson] .equation .blank { min-width: 1.2em; height: 1.4em; border-radius: 17px; }
+  body[data-view=lesson] .answers { gap: 8px; }
+  body[data-view=lesson] .answer { height: clamp(60px, 10dvh, 82px); min-height: 56px; font-size: 29px; border-radius: 16px; }
+  body[data-view=lesson] .target-sigil { gap: 8px; margin-bottom: 16px; }
+  body[data-view=lesson] .target-sigil>span { font-size: 13px; }
+  body[data-view=lesson] .target-number { font-size: 40px; }
+  body[data-view=lesson] .number-card { height: clamp(70px, 11dvh, 95px); min-height: 64px; font-size: 31px; }
+  body[data-view=lesson] .number-card-deck { gap: 8px; }
+  body[data-view=lesson] .chain-equation { font-size: clamp(24px, 6.7vw, 38px); gap: 5px; }
+  body[data-view=lesson] .large-equation { font-size: clamp(28px, 8.5vw, 48px); gap: 8px; }
+  .lesson-action-buttons button { font-size: 13px; padding: 10px; }
+  body[data-view=lesson] .feedback { font-size: 13px; }
+  .modal.lesson-help { padding: 18px; gap: 12px; }
+  .lesson-help .hint-panel { padding: 12px 6px; }
+  .lesson-help .hint-panel h2 { font-size: 14px; }
+  .lesson-help .ten-frames { gap: 8px; }
+  .lesson-help .ten-frame { grid-template-columns: repeat(5, 22px); grid-template-rows: repeat(2, 22px); padding: 5px; gap: 3px; }
+  .lesson-help .dot { width: 17px; height: 17px; }
+  .intro-stage, .reward-stage { padding: 16px; gap: 10px; }
+  .intro-heading h1, .reward-heading h1 { font-size: 26px; }
+  .intro-heading p { font-size: 12px; }
+  .intro-actions button { padding: 10px; font-size: 14px; }
+  .reward-stage .reward-display { gap: 12px; }
+  .reward-stage .spell-card { padding: 13px 8px; }
+  .reward-stage .spell-card h3 { font-size: 14px; }
+  .reward-stage .reward-actions button { font-size: 12px; padding: 10px 8px; }
+  .vault-heading { padding: 6px; }
+  .vault-heading h1 { font-size: 23px; }
+  body[data-view=magic] .magic-controls button { font-size: 12px; }
+  body[data-view=magic] .magic-controls .icon { display: none; }
+  body[data-view=magic] .magic-story { font-size: 11px; }
+  body[data-view=treasure] .treasure-heading h1 { font-size: 21px; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  body[data-view] .shell { width: calc(100% - 24px); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  body[data-view] .site-header { height: 44px; min-height: 44px; }
+  .home-stage { gap: 5px; grid-template-columns: 1fr 2fr; grid-template-rows: auto minmax(0, 1fr); }
+  .home-welcome { grid-column: 1; grid-row: 1; gap: 5px; }
+  .home-welcome img { width: 54px; height: 46px; }
+  .home-welcome h1 { font-size: 17px; }
+  .home-welcome p { font-size: 10px; }
+  .home-actions { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; justify-content: center; padding: 8px; gap: 10px; }
+  .compact-map { grid-column: 2; grid-row: 1/3; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(54px, 1fr)); gap: 6px; }
+  .focus-level { flex-direction: column; justify-content: center; padding: 5px; gap: 1px; text-align: center; }
+  .focus-level .emblem { width: 28px; height: 28px; }
+  .focus-level-number { display: none; }
+  .focus-level-copy strong { font-size: 11px; }
+  .focus-level-copy small { font-size: 9px; }
+  .lesson-head { min-height: 46px; height: 46px; padding: 0; }
+  .lesson-avatar { width: 30px; height: 32px; }
+  .lesson-place { font-size: 12px; }
+  body[data-view=lesson] .problem-card { padding: 12px 20px; }
+  .problem-content { gap: 12px; }
+  body[data-view=lesson] .equation { font-size: 36px; gap: 10px; }
+  body[data-view=lesson] .equation .blank { height: 1.2em; }
+  body[data-view=lesson] .answer { height: 54px; min-height: 48px; font-size: 29px; }
+  body[data-view=lesson] .chain-equation { font-size: 30px; }
+  .lesson-actions { min-height: 66px; gap: 4px; padding-top: 4px; flex-direction: row; align-items: end; }
+  body[data-view=lesson] .feedback { flex: 1; justify-content: start; padding-bottom: 12px; }
+  .lesson-action-buttons { width: min(420px, 65%); gap: 8px; }
+  .lesson-action-buttons button { min-height: 44px; font-size: 12px; padding: 8px; }
+  body[data-view=lesson] .target-sigil { margin-bottom: 10px; }
+  body[data-view=lesson] .target-number { font-size: 32px; }
+  body[data-view=lesson] .target-sigil>span { font-size: 12px; }
+  body[data-view=lesson] .number-card-deck { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  body[data-view=lesson] .number-card { height: 58px; min-height: 48px; font-size: 28px; }
+  body[data-view=lesson] .card-selection-note { margin: 5px 0 0; font-size: 11px; }
+  .intro-stage, .reward-stage { gap: 8px; padding: 12px 18px; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .intro-heading, .reward-heading { grid-column: 1; grid-row: 1; align-self: center; }
+  .intro-heading h1, .reward-heading h1 { font-size: 25px; }
+  .intro-scene, .reward-stage .reward-display { grid-column: 2; grid-row: 1; }
+  .intro-scene img { max-height: 65%; max-width: 160px; }
+  .intro-scene .intro-sample { font-size: 24px; padding: 0; }
+  .intro-actions, .reward-stage .reward-actions { grid-column: 1/3; grid-row: 2; }
+  .reward-stage .spell-card .emblem { width: 55px; height: 55px; }
+  .reward-stage .spell-card h3 { font-size: 13px; }
+  .vault-stage { gap: 6px; }
+  .vault-heading { padding: 0 6px; }
+  .vault-heading h1 { font-size: 21px; }
+  .vault-actions button { min-height: 44px; padding: 8px; font-size: 12px; }
+  body[data-view=vault] .vault-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(50px, 1fr)); gap: 6px; }
+  body[data-view=vault] .spell-card { padding: 5px; grid-template-columns: 27px minmax(0, 1fr); gap: 0 4px; }
+  body[data-view=vault] .spell-card .emblem { width: 27px; height: 27px; }
+  body[data-view=vault] .spell-card h3 { font-size: 12px; }
+  body[data-view=vault] .spell-card .card-action { font-size: 8px; }
+  body[data-view=magic] .magic-header { height: 36px; min-height: 36px; margin-bottom: 4px; }
+  body[data-view=magic] .magic-header h1 { font-size: 19px; }
+  body[data-view=magic] .magic-controls { padding-top: 7px; min-height: 51px; }
+  body[data-view=magic] .magic-controls button { min-height: 44px; font-size: 12px; padding: 8px; }
+  body[data-view=magic] .casting-ring { --orbit-radius: clamp(46px, 16dvh, 100px); }
+  body[data-view=magic] .casting-orbit>span { width: 26px; height: 26px; }
+  body[data-view=magic] .casting-character { max-height: 62%; bottom: 14%; }
+  body[data-view=magic] .spell-focus .emblem { width: 46px; height: 46px; }
+  body[data-view=magic] .magic-story { font-size: 10px; bottom: 5px; padding: 4px 8px; }
+  body[data-view=treasure] .treasure-stage { height: max(80px, calc(100dvh - 158px)); max-height: 270px; }
+  body[data-view=treasure] .treasure-heading { min-height: 44px; margin-bottom: 6px; }
+  body[data-view=treasure] .treasure-heading h1 { font-size: 19px; }
+  body[data-view=treasure] .treasure-controls { margin: 6px 0; }
+  body[data-view=treasure] .treasure-controls button { min-height: 44px; padding: 8px 14px; font-size: 12px; }
+  body[data-view=treasure] .treasure-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); }
+  body[data-view=treasure] .treasure-chest-caption, body[data-view=treasure] .treasure-dance-note { display: none; }
+  body[data-view=treasure] .treasure-dancer { width: 160px; height: 65%; }
+  .modal.lesson-help { padding: 14px 18px; gap: 8px; max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .lesson-help h2 { font-size: 18px; }
+  .modal.settings-dialog { padding: 14px 18px; gap: 6px; }
+  .settings-dialog h2 { font-size: 20px; }
+  .settings-dialog .setting-row { padding: 0; }
+  .settings-links { flex-direction: row; gap: 5px; margin: 0; }
+  .settings-links button { flex: 1; min-width: 0; padding: 5px; font-size: 12px; justify-content: center; }
+  .settings-links .icon { width: 17px; height: 17px; }
+  .settings-dialog .modal-actions .primary { min-height: 44px; padding: 8px; }
+}
+@media (max-height: 300px) and (orientation: landscape) {
+  .lesson-head { height: 44px; min-height: 44px; }
+  body[data-view=lesson] .problem-card { padding: 8px; }
+  .problem-content { display: grid; grid-template-columns: 1.1fr 1.4fr; gap: 10px; }
+  body[data-view=lesson] .equation { font-size: 32px; gap: 8px; }
+  body[data-view=lesson] .chain-equation, body[data-view=lesson] .large-equation { font-size: 27px; gap: 6px; }
+  body[data-view=lesson] .answers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  body[data-view=lesson] .answer { min-height: 44px; height: 44px; font-size: 24px; border-radius: 13px; }
+  .lesson-actions { min-height: 48px; padding: 4px 0 0; gap: 6px; }
+  .lesson-action-buttons { width: min(360px, 65%); }
+  body[data-view=lesson] .lesson-action-buttons button { min-height: 44px; padding: 6px 8px; }
+  .lesson-action-buttons .icon { display: none; }
+  body[data-view=lesson] .has-card-puzzle .problem-content { display: flex; }
+  body[data-view=lesson] .card-puzzle { display: grid; grid-template-columns: 130px minmax(0, 1fr); grid-template-rows: auto auto; gap: 0 10px; }
+  body[data-view=lesson] .target-sigil { grid-column: 1; grid-row: 1; flex-direction: column; gap: 2px; margin: 0; }
+  body[data-view=lesson] .target-number { font-size: 29px; }
+  body[data-view=lesson] .target-sigil>span { font-size: 11px; }
+  body[data-view=lesson] .number-card-deck { grid-column: 2; grid-row: 1/3; gap: 6px; align-self: center; }
+  body[data-view=lesson] .number-card { min-height: 44px; height: 46px; padding: 4px; font-size: 24px; }
+  body[data-view=lesson] .card-selection-note { grid-column: 1; grid-row: 2; margin: 3px 0 0; font-size: 10px; }
+}
+@media (max-height: 300px) and (max-width: 560px) and (orientation: landscape) {
+  body[data-view=lesson] .card-puzzle { grid-template-columns: 90px minmax(0, 1fr); }
+  body[data-view=lesson] .number-card-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+html[data-motion=reduce] .answer.wrong { animation: none; }
+@media (prefers-reduced-motion: reduce) { .answer.wrong { animation: none; } }

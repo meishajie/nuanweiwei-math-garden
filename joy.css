@@ -1,0 +1,241 @@
+/* The original character stays beside the question; decoration never receives taps. */
+body[data-view=lesson] {
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 12% 18%, #b273ed45, transparent 42%),
+    radial-gradient(ellipse at 86% 76%, #eac36724, transparent 38%),
+    linear-gradient(135deg, #1d173c99, #39234bb8),
+    url('./assets/magic-garden-v2.webp') center / cover fixed;
+}
+body[data-view=lesson]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle, #ffe6ae 0 1px, transparent 2px) 17px 27px / 163px 179px,
+    radial-gradient(circle, #dabfff99 0 1px, transparent 2px) 91px 52px / 239px 211px,
+    radial-gradient(ellipse at 50% 0, #d6a9f22c, transparent 58%);
+}
+body[data-view=lesson] .problem-card {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(145deg, #fffdf8 15%, #faf3ff 78%, #fff6e9);
+  border: 1px solid #f6dca581;
+  box-shadow: 0 16px 44px #160e3436, 0 0 28px #c49fe228;
+}
+body[data-view=lesson] .problem-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse at 50% 4%, #e9d3ff7a, transparent 42%);
+}
+body[data-view=lesson] .problem-content,
+body[data-view=lesson] .lesson-actions {
+  position: relative;
+  z-index: 1;
+}
+body[data-view=lesson] .problem-content { gap: clamp(9px, 2dvh, 18px); }
+.question-companion {
+  position: relative;
+  width: clamp(122px, 22vw, 174px);
+  height: clamp(70px, 12dvh, 106px);
+  flex: none;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  user-select: none;
+}
+.question-companion > img {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 5px 5px #8e58942b);
+  animation: joy-companion-float 5.8s ease-in-out infinite;
+}
+.companion-aura {
+  position: absolute;
+  inset: 8px 14px 3px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #ffe6a9b3, #ddbaff70 53%, transparent 73%);
+  box-shadow: 0 0 20px #b799dc28;
+  pointer-events: none;
+}
+.companion-star {
+  position: absolute;
+  z-index: 3;
+  font: 20px/1 Arial, sans-serif;
+  color: #be8e2e;
+  text-shadow: 0 0 8px #ffe6a7;
+  pointer-events: none;
+  animation: joy-star-breathe 4.8s ease-in-out infinite;
+}
+.companion-star.star-one { left: 5%; top: 22%; }
+.companion-star.star-two { right: 6%; bottom: 22%; color: #9e6bc2; font-size: 14px; animation-delay: -2.4s; }
+.problem-card.is-correct .question-companion > img { animation: joy-companion-cheer 1.05s ease-out both; }
+.problem-card.is-correct .companion-aura {
+  background: radial-gradient(ellipse, #ffe297cc, #e3bde779 57%, transparent 76%);
+  box-shadow: 0 0 25px #f1c77947;
+}
+.problem-card.is-retry .question-companion > img { animation: joy-companion-nod .8s ease-in-out both; }
+.shell[inert] .question-companion > img,
+.shell[inert] .companion-star { animation-play-state: paused; }
+
+/* The selected number and its destination use the same unmistakable color. */
+body[data-view=lesson] .card-puzzle .number-card {
+  background: #fffaf3;
+  color: #614d77;
+  border-color: #c8b2db;
+  opacity: 1;
+}
+body[data-view=lesson] .card-puzzle .number-card:not(.selected):disabled {
+  opacity: 1;
+  background: #efebf4;
+  color: #82718e;
+  border-color: #d6cadd;
+  box-shadow: none;
+}
+body[data-view=lesson] .card-puzzle .number-card.selected,
+body[data-view=lesson] .card-puzzle .number-card.selected:disabled {
+  opacity: 1;
+  background: #8351b8;
+  color: #fff;
+  border: 3px solid #f2cd76;
+  box-shadow: 0 4px 12px #73439730, inset 0 -3px 0 #65309136;
+  transform: none;
+}
+body[data-view=lesson] .card-puzzle .number-card.selected > span { color: #fff; }
+body[data-view=lesson] .card-puzzle .number-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff6d7;
+  border-radius: 50%;
+  background: #ffdf91;
+  color: #654087;
+  box-shadow: 0 2px 5px #56367424;
+  font: 900 12px/1 Arial, sans-serif;
+  pointer-events: none;
+}
+body[data-view=lesson] .card-puzzle .number-card.selected:hover { background: #8351b8; border-color: #ffdfa0; }
+body[data-view=lesson] .number-slot.empty {
+  background: #f6efff;
+  border-color: #b496d0;
+  box-shadow: inset 0 0 0 2px #fff8;
+}
+body[data-view=lesson] .number-slot.filled,
+body[data-view=lesson] .number-slot.filled:disabled {
+  opacity: 1;
+  background: #8351b8;
+  color: #fff;
+  border: 2px solid #f2cd76;
+  box-shadow: inset 0 -2px 0 #65309136;
+}
+body[data-view=lesson] .number-slot.filled > span { color: #fff; }
+body[data-view=lesson] .number-slot:focus-visible,
+body[data-view=lesson] .number-card:focus-visible { outline-color: #ac78d2; outline-width: 3px; }
+
+@keyframes joy-companion-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes joy-star-breathe { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+@keyframes joy-companion-cheer {
+  0%, 100% { transform: none; }
+  30% { transform: translateY(-5px) rotate(-4deg); }
+  65% { transform: translateY(-1px) rotate(3deg); }
+}
+@keyframes joy-companion-nod { 0%, 100% { transform: none; } 50% { transform: rotate(2deg); } }
+
+@media (max-width: 600px) {
+  .question-companion { width: 128px; height: clamp(70px, 10dvh, 88px); }
+  .companion-star { font-size: 17px; }
+  .companion-star.star-two { font-size: 12px; }
+  body[data-view=lesson] .card-puzzle .number-card.selected::after { width: 18px; height: 18px; font-size: 11px; }
+}
+@media (max-width: 360px) and (max-height: 680px) {
+  .question-companion { width: 108px; height: 58px; }
+  .companion-aura { inset: 5px 12px 1px; }
+  .companion-star { font-size: 13px; }
+  .companion-star.star-two { font-size: 10px; }
+  body[data-view=lesson] .problem-content { gap: 9px; }
+  body[data-view=lesson] .card-puzzle { gap: 16px; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .question-companion { width: 86px; height: 42px; }
+  .companion-aura { inset: 2px 9px 0; }
+  .companion-star { font-size: 12px; }
+  .companion-star.star-two { font-size: 9px; }
+  body[data-view=lesson] .problem-content { gap: 7px; }
+  body[data-view=lesson] .card-puzzle .number-card.selected::after { width: 16px; height: 16px; top: -7px; right: -3px; font-size: 10px; }
+}
+/* On the shortest screens the portrait lives in the feedback gutter, outside the math grid. */
+@media (max-height: 300px) and (orientation: landscape) {
+  body[data-view=lesson] .question-companion {
+    position: absolute;
+    left: -2px;
+    bottom: -44px;
+    width: 36px;
+    height: 38px;
+    z-index: 2;
+  }
+  body[data-view=lesson] .question-companion .companion-star { display: none; }
+  body[data-view=lesson] .question-companion .companion-aura { inset: 3px 0; }
+  body[data-view=lesson] .lesson-actions { z-index: auto; }
+  body[data-view=lesson] .lesson-actions .feedback { padding-left: 36px; font-size: 11px; gap: 3px; min-width: 0; }
+  body[data-view=lesson] .feedback .icon { width: 14px; height: 14px; }
+}
+html[data-motion=reduce] .question-companion > img,
+html[data-motion=reduce] .companion-star { animation: none; transform: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion=full]) .question-companion > img,
+  html:not([data-motion=full]) .companion-star { animation: none; transform: none; opacity: 1; }
+}
+
+/* The game world remains visible behind the arithmetic; cards stay opaque. */
+body[data-view=lesson] .problem-card {
+  color: #fff7e8;
+  background: linear-gradient(180deg,#291b3e65,#2b2148db), url('./assets/magic-garden-v2.webp') center / cover;
+  border-color: #e8c88675;
+}
+body[data-view=lesson] .problem-card::before {
+  background: radial-gradient(ellipse at 50% 8%,#e6bafb30,transparent 50%);
+}
+body[data-view=lesson] .equation { color: #fff9ed; text-shadow: 0 2px 8px #24133470; }
+body[data-view=lesson] .equation .symbol { color: #efd3ff; }
+body[data-view=lesson] .equation .blank { color: #ffde97; background: #493666c9; border-color: #ddb3fa; }
+body[data-view=lesson] .equation .blank.revealed { color: #d3ffc7; border-color: #abdaa4; background: #2b5a42c9; }
+body[data-view=lesson] .slot-operator { color: #e4cff3; }
+body[data-view=lesson] .slot-goal { color: #ffdfa0; text-shadow: 0 2px 9px #342044; }
+body[data-view=lesson] .slot-goal.goal-lit { color: #d0ffbd; }
+body[data-view=lesson] .number-slot.empty { background: #483068ab; border-color: #e0bffa; box-shadow: inset 0 0 18px #ac86dd15; }
+body[data-view=lesson] .answer { color: #69497f; }
+body[data-view=lesson] .feedback.correct { color: #d3ffbf; }
+body[data-view=lesson] .feedback.retry { color: #ffe0ed; }
+body[data-view=lesson] .lesson-action-buttons .secondary,
+body[data-view=lesson] .lesson-action-buttons .text-button { color: #f4dfff; background: #39274775; border-color: #d9b7eb68; }
+body[data-view=lesson] .story-question { color: #fff5de; text-shadow: 0 2px 7px #251632; }
+body[data-view] .tool-button.wide.music-toggle,
+body[data-view=lesson] .focus-tool.music-toggle { display: flex; flex-direction: column; justify-content: center; gap: 1px; width: 48px; min-width: 48px; }
+body[data-view] .tool-button.wide.music-toggle span,
+body[data-view=lesson] .focus-tool.music-toggle span { display: block; font-size: 9px; line-height: 1.1; white-space: nowrap; }
+.music-toggle .icon { width: 21px; height: 21px; }
+.audio-status { color: #7a6888; font-size: 12px; line-height: 1.6; margin: 10px 0; }
+
+.question-companion .character-companion { --companion-size: 100%; width: 100%; height: 100%; max-height: 100%; }
+.question-companion { height: clamp(90px,14dvh,130px); }
+@media(max-width:600px) { .question-companion { height: clamp(82px,14dvh,118px); } }
+@media(max-width:360px) and (max-height:680px) { .question-companion { height: 76px; } }
+@media(max-height:550px) and (orientation:landscape) { .question-companion { height: 42px; } }
+@media(max-height:300px) and (orientation:landscape) { body[data-view=lesson] .question-companion { height: 38px; } }
