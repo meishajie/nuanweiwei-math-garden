@@ -1,8 +1,8 @@
 import { getLevels, getQuestionBank } from './curriculum.js';
 import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js';
 import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js';
-import { createState, hydrate, beginSession, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261012-3';
+import { createState, hydrate, beginSession, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261012-3';
 import {columnMethod} from './column-method.js';
 import { t, locale } from './i18n.js';
 import { icon, emblem, magicArt } from './art.js';
@@ -10,7 +10,7 @@ import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js';
 import { getAlbum, albumDetailMarkup } from './album-gallery.js';
 import { createEffects } from './effects.js';
 import { createSoundPlayer } from './sounds.js?v=20261012-2';
-import {roundSummaryMarkup} from './round-summary.js';
+import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261012-3';
 import {companionMarkup, createCharacterReactions} from './character-reactions.js';
 import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261012-2';
 
@@ -276,7 +276,7 @@ function magicPage() {
   return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div><section class="magic-view ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-cutout-v2.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?'我们点亮花园啦！':magic.paused?'等你准备好':'星光集合……'}</p></section><div class="magic-controls">${nextMagicAction()}${magic.finished?'':`<button class="secondary" data-action="magic-pause">${icon(magic.paused?'play':'pause')}${magic.paused?'继续':'暂停'}</button>`}<button class="secondary" data-action="magic-replay">${icon('reset')}再看一次</button></div>`;
 }
 function treasurePage() {
-  return treasureMarkup({...treasure,paused:treasure.paused||Boolean(modal)});
+  return treasureMarkup({...treasure,paused:treasure.paused||Boolean(modal)}).replace('<div class="treasure-controls">',`${gardenSummaryMarkup(state)}<div class="treasure-controls">`);
 }
 function modalView() {
   if(!modal)return '';

@@ -1,3 +1,4 @@
+import {answerTotals} from './round-summary.js';
 import { LEVELS, QUESTIONS, LEGACY_GENERATED_QUESTIONS, GRADE_QUESTIONS, getLevels } from './curriculum.js';
 
 // No browser APIs, dates or storage. Random sampling is injected at session start.
@@ -184,6 +185,9 @@ export function submitAnswer(state, choice) {
     return { correct: false };
   }
   session.feedback = { correct: true };
+  const totals=answerTotals(state);
+  state.answerStats={firstTry:totals.firstTry,retried:totals.retried,unknown:totals.unknown};
+  state.answerStats[session.attempts+(session.carriedAttempts||0)===1?'firstTry':'retried']+=1;
   state.completedQuestions = increment(state.completedQuestions);
   const result = { questionId: q.id, levelId: q.levelId, review: q.review, correct: true,
     choice, independent: !session.assisted && session.attempts + (session.carriedAttempts || 0) === 1,
@@ -535,6 +539,10 @@ export function hydrate(input, options = {}) {
       && LEVEL_IDS.every(id => !state.stages[id]?.completedRounds || raw.cards.includes(id)));
     state.cards = [...raw.cards].sort((a, b) => a - b);
     state.session = raw.session === null ? null : restoreSession(raw.session, state);
+    if (Object.hasOwn(raw,'answerStats')) {
+      const totals=answerTotals({...state,answerStats:raw.answerStats});
+      state.answerStats={firstTry:totals.firstTry,retried:totals.retried,unknown:totals.unknown};
+    }
     // No object from the caller is retained; unknown fields are intentionally
     // absent. This is input validation, not anti-cheat or a learning diagnosis.
     return migratePendingCards(state);

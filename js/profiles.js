@@ -1,4 +1,4 @@
-import {createState, hydrate} from './engine.js';
+import {createState, hydrate} from './engine.js?v=20261012-3';
 
 export const GRADES = Object.freeze([1, 2, 3]);
 const validGrade = value => GRADES.includes(value);

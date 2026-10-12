@@ -1,51 +1,18 @@
-.round-summary {
-  width: 100%;
-  max-width: 540px;
-  box-sizing: border-box;
-  margin: 16px auto;
-  padding: 16px;
-  border: 1px solid #d8d1e8;
-  border-radius: 20px;
-  background: #faf7ff;
-  color: #483f5c;
-  text-align: center;
-}
-.round-summary h2 { margin: 0 0 6px; font-size: 1.15rem; }
-.round-summary-total { margin: 0 0 12px; }
-.round-summary-total strong { font-size: 1.4rem; }
-.round-summary-answers {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-  padding: 0;
-  margin: 0 0 12px;
-  list-style: none;
-}
-.round-summary-answer { min-width: 0; border-radius: 12px; padding: 8px 2px; }
-.round-summary-symbol { display: block; font-size: 1.6rem; line-height: 1.25; }
-.round-summary-number { display: block; font-size: .75rem; white-space: nowrap; }
-.round-summary-first { background: #e1f2e8; color: #24583e; }
-.round-summary-retry { background: #eee5fa; color: #65417f; }
-.round-summary-complete { background: #ecebf0; color: #483f5c; }
-.round-summary-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.round-summary-count { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 0; padding: 10px 6px; border-radius: 12px; }
-.round-summary-count > span:first-child { font-size: 1.25rem; }
-.round-summary-count > span:nth-child(2) { font-size: .9rem; }
-.round-summary-count strong { font-size: 1.5rem; }
-.round-summary-count small { font-size: .75rem; font-weight: normal; }
-.round-summary-help { margin: 10px 0 0; font-size: .8rem; line-height: 1.6; }
-.round-summary-encourage { margin: 6px 0 0; font-size: .9rem; line-height: 1.6; }
-@media (max-width: 360px) {
-  .round-summary { padding: 12px 10px; }
-  .round-summary-answers { gap: 4px; }
-  .round-summary-count { gap: 4px; }
-}
-/* Static markers stay fully visible with reduced motion, without count-up animations. */
-
-body[data-view=reward] #main { overflow-y:auto; }
-body[data-view=reward] .reward-stage { height:auto; min-height:100%; display:flex; flex-direction:column; align-items:center; gap:10px; padding-bottom:16px; }
-body[data-view=reward] .reward-heading, body[data-view=reward] .reward-display, body[data-view=reward] .round-summary, body[data-view=reward] .reward-actions { position:relative; z-index:1; flex:none; }
-body[data-view=reward] .reward-display { width:min(100%,480px); height:180px; min-height:0; }
-body[data-view=reward] .round-summary { margin:0; padding:12px; }
-body[data-view=reward] .reward-actions { width:100%; }
-@media(max-height:550px) and (orientation:landscape) { body[data-view=reward] .reward-display {height:125px;} }
+.round-summary{width:100%;max-width:460px;box-sizing:border-box;margin:12px auto;padding:14px 18px;border-radius:22px;background:#faf7ff;color:#483f5c;text-align:center}
+.round-summary header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.round-summary h2{margin:0;font-size:21px}.summary-total{font-size:28px;font-weight:700}.summary-total small{font-size:14px;margin-left:4px}
+.round-summary-answers{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 12px;padding:0}
+.round-summary-answer{border-radius:12px;font-size:28px;line-height:42px}.round-summary-first{background:#e1f2e8;color:#24583e}.round-summary-retry{background:#eee5fa;color:#65417f}
+.round-summary-counts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.round-summary-count{display:grid;grid-template-columns:auto auto;justify-content:center;align-items:center;column-gap:10px;padding:10px;border-radius:14px}
+.round-summary-count .summary-icon{font-size:30px;line-height:1}.round-summary-count strong{font-size:36px;line-height:1.1}.summary-label{grid-column:1/-1;font-size:14px;margin-top:6px}
+.garden-summary-badges{display:flex;justify-content:center;gap:6px;color:#ba8e3c;font-size:20px;margin-bottom:12px}
+.summary-scope,.summary-legacy{font-size:12px;margin-top:10px;color:#73677e}.summary-scope p,.summary-legacy p{line-height:1.6;text-align:left}
+body[data-view=reward] #main{overflow-y:auto}
+body[data-view=reward] .reward-stage{height:auto;min-height:100%;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:16px}
+body[data-view=reward] .reward-heading,body[data-view=reward] .reward-display,body[data-view=reward] .round-summary,body[data-view=reward] .reward-actions{position:relative;z-index:1;flex:none}
+body[data-view=reward] .reward-display{width:min(100%,480px);height:180px;min-height:0}
+body[data-view=reward] .round-summary{margin:0}body[data-view=reward] .reward-actions{width:100%}
+body[data-view=treasure] .garden-summary{flex:none;position:relative;z-index:1;margin:12px auto}
+@media(max-width:360px){.round-summary{padding:12px}.round-summary-count{column-gap:7px}.round-summary-count strong{font-size:30px}.garden-summary-badges{gap:4px}}
+@media(max-height:550px) and (orientation:landscape){body[data-view=reward] .reward-display{height:125px}}
