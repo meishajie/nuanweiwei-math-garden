@@ -2,7 +2,7 @@ import { icon, emblem } from './art.js';
 import { PLAY_DURATION_MS } from './play-rewards.js';
 
 const safeCount = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
-const sourceCharacter = './assets/nuanweiwei-happy-cutout-v2.png';
+const sourceCharacter = './assets/nuanweiwei-happy-safari.png';
 export const starPlayTime = (play, now) => Math.max(0, Math.min(PLAY_DURATION_MS, play.expiresAt - now));
 
 export function playRewardMarkup(rewards) {

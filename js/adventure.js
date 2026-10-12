@@ -23,7 +23,7 @@ export const TREASURE_THEMES = Object.freeze({
 });
 
 const clamp = (value, max) => Math.max(0, Math.min(max, Number(value) || 0));
-const companionAsset = './assets/nuanweiwei-happy-cutout-v2.png';
+const companionAsset = './assets/nuanweiwei-happy-safari.png';
 
 export function companionMarkup(id = 1, { earned = 0, total = 6, solved = 0, variant = 'lesson' } = {}) {
   const mission = MISSIONS[id] || MISSIONS[1];

@@ -1,17 +1,17 @@
-import { getLevels, getQuestionBank } from './curriculum.js';
+import { getLevels, difficultyRange } from './curriculum.js?v=20261012-4';
 import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js';
-import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261012-3';
-import { createState, hydrate, beginSession, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261012-3';
+import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261012-4';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261012-4';
+import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261012-4';
 import {columnMethod} from './column-method.js';
 import { t, locale } from './i18n.js';
 import { icon, emblem, magicArt } from './art.js';
-import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js';
+import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261012-4';
 import { getAlbum, albumDetailMarkup } from './album-gallery.js';
 import { createEffects } from './effects.js';
 import { createSoundPlayer } from './sounds.js?v=20261012-2';
 import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261012-3';
-import {companionMarkup, createCharacterReactions} from './character-reactions.js';
+import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261012-4';
 import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261012-2';
 
 const STORAGE_KEY = 'nuanweiwei.math-garden.v1';
@@ -35,6 +35,7 @@ let hintClosed = false;
 let modal = '';
 let modalReturnFocus = null;
 let toastTimer;
+let completionTimer=0;
 let selectedAlbum = '';
 let albumReturnId = '';
 let cardSelection = 0;
@@ -113,6 +114,7 @@ function stopMagic() { cancelAnimationFrame(magic.frame); magic.frame = 0; }
 function stopTreasure() { cancelAnimationFrame(treasure.frame); treasure.frame=0; }
 function go(next) {
   if(view==='mini'&&next!=='mini'){stopMini();rewards=finishPlay(rewards,Date.now(),'left');save();}
+  clearTimeout(completionTimer);completionTimer=0;
   stopMagic(); stopTreasure(); effects.stop(); sounds.stopEffects(); sounds.resume({unlock:false});effects.resume(); modal = ''; view = next;
   render({preserveScroll:false}); window.scrollTo({top:0,behavior:'instant'});
   document.querySelector('#main')?.focus({preventScroll:true});
@@ -146,7 +148,7 @@ function cardButton(l, bonus=false) {
 }
 function home() {
   const next=rewards.unlockedGrades.length&&!rewards.ticket?practiceStage():suggested();
-  return `<section class="home-stage ${rewards.unlockedGrades.length?'has-play-reward':''}"><div class="home-welcome"><img src="./assets/nuanweiwei-happy-cutout-v2.png" alt="暖尾尾邀请你冒险" width="318" height="240"><div><h1>一起点亮花园</h1><p>魔法卡 ${state.cards.length} / 10</p></div></div><div class="grade-picker" role="group" aria-label="选择练习年级">${[1,2,3].map(grade=>`<button class="grade-choice" data-action="grade" data-grade="${grade}" aria-pressed="${profiles.selectedGrade===grade}"><b>${grade}</b><span>年级</span></button>`).join('')}</div><div class="home-actions"><button class="primary" data-action="${hasPaused()?'resume':'intro'}" ${hasPaused()?'':`data-level="${next}"`}>${hasPaused()?'接着玩':rewards.unlockedGrades.length?'新探险':'开始冒险'}${icon('arrow')}</button><button class="secondary" data-action="nav" data-view="vault" aria-label="魔法宝藏，已有 ${state.cards.length} 张卡">${icon('chest')}魔法宝藏</button></div>${miniShortcut()}<section class="compact-map" id="garden-map" aria-label="选择花园关卡">${levels().map(l=>`<button class="focus-level ${state.cards.includes(l.id)?'level-lit':''}" data-action="intro" data-level="${l.id}" aria-label="第 ${l.id} 站 ${l.title}${l.optional?'，自选挑战':''}${state.cards.includes(l.id)?'，已点亮':''}"><span class="focus-level-number">${String(l.id).padStart(2,'0')}</span>${emblem(l.id)}<span class="focus-level-copy"><strong>${l.title}</strong><small>${state.cards.includes(l.id)?'已点亮':l.optional?'自选挑战':l.range}</small></span></button>`).join('')}</section></section>`;
+  return `<section class="home-stage ${rewards.unlockedGrades.length?'has-play-reward':''}"><div class="home-welcome"><img src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾邀请你冒险" width="318" height="240"><div><h1>一起点亮花园</h1><p>魔法卡 ${state.cards.length} / 10</p><button class="difficulty-shortcut" data-action="settings">${difficultyLabel()}练习 ${icon('settings')}</button></div></div><div class="grade-picker" role="group" aria-label="选择练习年级">${[1,2,3].map(grade=>`<button class="grade-choice" data-action="grade" data-grade="${grade}" aria-pressed="${profiles.selectedGrade===grade}"><b>${grade}</b><span>年级</span></button>`).join('')}</div><div class="home-actions"><button class="primary" data-action="${hasPaused()?'resume':'intro'}" ${hasPaused()?'':`data-level="${next}"`}>${hasPaused()?'接着玩':rewards.unlockedGrades.length?'新探险':'开始冒险'}${icon('arrow')}</button><button class="secondary" data-action="nav" data-view="vault" aria-label="魔法宝藏，已有 ${state.cards.length} 张卡">${icon('chest')}魔法宝藏</button></div>${miniShortcut()}<section class="compact-map" id="garden-map" aria-label="选择花园关卡">${levels().map(l=>`<button class="focus-level ${state.cards.includes(l.id)?'level-lit':''}" data-action="intro" data-level="${l.id}" aria-label="第 ${l.id} 站 ${l.title}${l.optional?'，自选挑战':''}${state.cards.includes(l.id)?'，已点亮':''}"><span class="focus-level-number">${String(l.id).padStart(2,'0')}</span>${emblem(l.id)}<span class="focus-level-copy"><strong>${l.title}</strong><small>${state.cards.includes(l.id)?'已点亮':l.optional?'自选挑战':l.range}</small></span></button>`).join('')}</section></section>`;
 }
 function spellCard(l, interactive=true) {
   const owned = state.cards.includes(l.id);
@@ -169,9 +171,8 @@ function equation(q, solved=false) {
   return `<div class="equation ${Math.max(q.a,q.b,q.result)>=100?'large-equation':''}" aria-label="${q.blank==='a'?(solved?q.answer:'空格'):q.a} ${q.op==='+'?'加':'减'} ${q.blank==='b'?(solved?q.answer:'空格'):q.b} 等于 ${q.blank==='result'?(solved?q.answer:'多少'):q.result}">${part('a')}<span class="symbol">${q.op==='+'?'+':'−'}</span>${part('b')}<span class="symbol">=</span>${part('result')}</div>`;
 }
 function intro() {
-  const l=level(selectedLevel),q=getQuestionBank(state.grade||1,l.id).find(q=>q.kind==='equation')||getQuestionBank(state.grade||1,l.id)[0];
-  const sample=`${q.blank==='a'?'□':q.a} ${q.op==='+'?'+':'−'} ${q.blank==='b'?'□':q.b} = ${q.blank==='result'?'?':q.result}`;
-  return `<section class="intro-stage"><div class="intro-heading"><p>${state.grade||1} 年级 · 第 ${l.id} 关${l.optional?' · 自选挑战':''}</p><h1>${l.title}</h1><p>${safe(MISSIONS[l.id].mission)}</p></div><div class="intro-scene"><img src="./assets/nuanweiwei-happy-cutout-v2.png" alt="暖尾尾准备与你一起出发" width="318" height="240"><div class="intro-sample" aria-label="示例题">${sample}</div></div><div class="intro-actions"><button class="primary" data-action="begin" data-level="${l.id}">出发${icon('arrow')}</button><button class="secondary" data-action="nav" data-view="home">回花园</button></div></section>`;
+  const l=level(selectedLevel);
+  return `<section class="intro-stage"><div class="intro-heading"><p>${state.grade||1} 年级 · 第 ${l.id} 关${l.optional?' · 自选挑战':''}</p><h1>${l.title}</h1><p>${safe(MISSIONS[l.id].mission)}</p></div><div class="intro-scene"><img src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾准备与你一起出发" width="318" height="240"><p class="intro-difficulty">${difficultyLabel()} · ${difficultyRange(state.grade||1,l.id,state.difficulty||'standard')} 以内</p></div><div class="intro-actions"><button class="primary" data-action="begin" data-level="${l.id}">出发${icon('arrow')}</button><button class="secondary" data-action="nav" data-view="home">回花园</button></div></section>`;
 }
 function selectedCardCount(mask) { return mask.toString(2).replaceAll('0','').length; }
 function cardIndices(q){
@@ -240,14 +241,32 @@ function lesson() {
   const s=state.session,q=currentQuestion(state);if(!q)return reward();
   const l=level(s.levelId),solved=Boolean(s.feedback?.correct),earned=s.index+(solved?1:0);
   const helper=solved?'看看方法':s.feedback?'要帮忙吗？':'帮我想想';
-  const primary=solved?`<button class="primary" data-action="next">${s.index===5?'收下魔法卡':'下一题'}${icon(s.index===5?'chest':'arrow')}</button>`:q.kind==='cards'?`<button class="primary card-submit" data-action="card-submit" ${selectedCardCount(cardSelection)!==q.pickCount?'disabled':''}>确定${icon('check')}</button>`:'';
+  const primary=solved&&s.index===s.questions.length-1?'<span class="completion-pending" role="status">点亮花园……</span>':solved?`<button class="primary" data-action="next">${s.index===5?'收下魔法卡':'下一题'}${icon(s.index===5?'chest':'arrow')}</button>`:q.kind==='cards'?`<button class="primary card-submit" data-action="card-submit" ${selectedCardCount(cardSelection)!==q.pickCount?'disabled':''}>确定${icon('check')}</button>`:'';
   const companion=`<div class="question-companion">${companionMarkup({mode:solved?'correct':s.feedback?'retry':'idle',kind:'lesson',motion:reduceMotion()?'reduce':'full'})}</div>`;
-  return `<div class="lesson-head"><button class="focus-tool" data-action="pause" aria-label="休息一下">${icon('back')}</button><div class="lesson-progress"><img class="lesson-avatar" src="./assets/nuanweiwei-happy-cutout-v2.png" alt="暖尾尾和你一起玩" width="318" height="240"><span class="lesson-place">${l.title}</span><span class="companion-energy-target" role="progressbar" aria-label="送给暖尾尾的星光" aria-valuemin="0" aria-valuemax="6" aria-valuenow="${earned}">${icon('spark')}<b>${earned} / 6</b></span></div><div class="lesson-tools"><button class="focus-tool music-toggle" data-action="sound" aria-label="${state.settings.sound?'关闭声音':'打开声音'}" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}<span>${state.settings.sound?'音乐开':'音乐关'}</span></button><button class="focus-tool" data-action="settings" aria-label="小设置">${icon('settings')}</button></div></div><section class="problem-card ${q.kind==='cards'?'has-card-puzzle':''} ${solved?'is-correct':s.feedback?'is-retry':''}" aria-labelledby="problem-title"><h1 class="sr-only" id="problem-title">${questionTitle(q)}</h1><div class="problem-content">${companion}${answerMarkup(q,s,solved)}</div><footer class="lesson-actions"><div class="feedback ${solved?'correct':s.feedback?'retry':''}" role="status" aria-live="polite" tabindex="-1">${solved?`${icon('check')}答对啦！`:s.feedback?`${icon('reset')}${q.kind==='cards'?'换一张，再试试':'再想想，再试试'}`:''}</div><div class="lesson-action-buttons"><button class="${primary?'secondary':'text-button'}" data-action="help" aria-expanded="${modal==='hint'}" aria-controls="hint-dialog">${icon('frame')}${helper}</button>${primary}</div></footer></section>`;
+  return `<div class="lesson-head"><button class="focus-tool" data-action="pause" aria-label="休息一下">${icon('back')}</button><div class="lesson-progress"><img class="lesson-avatar" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾和你一起玩" width="318" height="240"><span class="lesson-place">${l.title}</span><span class="companion-energy-target" role="progressbar" aria-label="送给暖尾尾的星光" aria-valuemin="0" aria-valuemax="6" aria-valuenow="${earned}">${icon('spark')}<b>${earned} / 6</b></span></div><div class="lesson-tools"><button class="focus-tool music-toggle" data-action="sound" aria-label="${state.settings.sound?'关闭声音':'打开声音'}" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}<span>${state.settings.sound?'音乐开':'音乐关'}</span></button><button class="focus-tool" data-action="settings" aria-label="小设置">${icon('settings')}</button></div></div><section class="problem-card ${q.kind==='cards'?'has-card-puzzle':''} ${solved?'is-correct':s.feedback?'is-retry':''}" aria-labelledby="problem-title"><h1 class="sr-only" id="problem-title">${questionTitle(q)}</h1><div class="problem-content">${companion}${answerMarkup(q,s,solved)}</div><footer class="lesson-actions"><div class="feedback ${solved?'correct':s.feedback?'retry':''}" role="status" aria-live="polite" tabindex="-1">${solved?`${icon('check')}答对啦！`:s.feedback?`${icon('reset')}${q.kind==='cards'?'换一张，再试试':'再想想，再试试'}`:''}</div><div class="lesson-action-buttons"><button class="${primary?'secondary':'text-button'}" data-action="help" aria-expanded="${modal==='hint'}" aria-controls="hint-dialog">${icon('frame')}${helper}</button>${primary}</div></footer></section>`;
 }
-function reward() {
-  const s=state.session;if(!s?.completed)return home();const l=level(s.levelId);
-  return `<section class="reward-stage"><div class="reward-halo" aria-hidden="true"></div><div class="reward-heading"><h1>点亮${l.title}！</h1><p>魔法卡 ${state.cards.length} / 10</p></div><div class="reward-display"><img class="reward-dancer" src="./assets/nuanweiwei-happy-cutout-v2.png" alt="暖尾尾跃起庆祝" width="318" height="240">${spellCard(l,false)}</div>${roundSummaryMarkup(s)}<div class="reward-actions"><button class="primary" data-action="cast" data-level="${l.id}">施放魔法${icon('spark')}</button>${hasTreasure()?`<button class="secondary" data-action="treasure">百宝箱${icon('chest')}</button>`:''}<button class="secondary" data-action="rest">休息${icon('moon')}</button></div></section>`;
+function reward() { return magicPage(); }
+function finishRound() {
+  clearTimeout(completionTimer);completionTimer=0;
+  const session=state.session;if(!session||session.completed||!session.feedback?.correct)return;
+  const result=advance(state);
+  if(!result.completed)return;
+  creditRound();save();startMagic(session.levelId,false,true);
 }
+function scheduleRoundCompletion() {
+  clearTimeout(completionTimer);
+  completionTimer=setTimeout(()=>{completionTimer=0;if(view==='lesson'&&!modal&&!document.hidden)finishRound();},750);
+}
+function correctAnswerFeedback(origin) {
+  effects.burst('correct',{origin,target:document.querySelector('.companion-energy-target')});void chime();
+  if(state.session.index===state.session.questions.length-1){scheduleRoundCompletion();}
+  else document.querySelector('[data-action="next"]')?.focus({preventScroll:true});
+}
+function difficultyLabel() {return {easy:'轻松',standard:'标准',challenge:'挑战'}[state.difficulty||'standard'];}
+function difficultyControl() {
+  return `<div class="setting-row"><label for="garden-difficulty">练习难度</label><select id="garden-difficulty" data-setting="difficulty">${[['easy','轻松'],['standard','标准'],['challenge','挑战']].map(([key,name])=>`<option value="${key}" ${key===(state.difficulty||'standard')?'selected':''}>${name}</option>`).join('')}</select></div><p class="difficulty-note">${state.grade||1} 年级 · 最大 ${difficultyRange(state.grade||1,10,state.difficulty||'standard')} 以内。下一趟生效，当前题目不变。</p>`;
+}
+
 function rest() {
   return `<section class="rest-card">${icon('moon')}<h1>${t.restTitle}</h1><p>${t.restBody}<br>已经走过的路，会留在这里。</p>${hasPaused()?`<button class="primary" data-action="resume">${t.resume}${icon('arrow')}</button>`:''}<button class="${hasPaused()?'secondary':'primary'}" data-action="nav" data-view="home">回花园看看${icon('leaf')}</button></section>`;
 }
@@ -272,8 +291,8 @@ function soundInvitation() {
   return state.settings.sound?'':`<button class="text-button sound-invitation" data-action="sound">${icon('sound')}打开魔法音效，听听我们的庆祝乐</button>`;
 }
 function magicPage() {
-  const l=level(magic.id),name=magic.finale?t.finale:l.cardName;
-  return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div><section class="magic-view ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-cutout-v2.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?'我们点亮花园啦！':magic.paused?'等你准备好':'星光集合……'}</p></section><div class="magic-controls">${nextMagicAction()}${magic.finished?'':`<button class="secondary" data-action="magic-pause">${icon(magic.paused?'play':'pause')}${magic.paused?'继续':'暂停'}</button>`}<button class="secondary" data-action="magic-replay">${icon('reset')}再看一次</button></div>`;
+  const l=level(magic.id),name=magic.completedRound?`点亮${l.title}！`:magic.finale?t.finale:l.cardName;
+  return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div><section class="magic-view ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?'我们点亮花园啦！':magic.paused?'等你准备好':'星光集合……'}</p></section>${magic.completedRound?roundSummaryMarkup(state.session):''}<div class="magic-controls">${nextMagicAction()}${magic.finished?'':`<button class="secondary" data-action="magic-pause">${icon(magic.paused?'play':'pause')}${magic.paused?'继续':'暂停'}</button>`}<button class="secondary" data-action="nav" data-view="home">${icon('leaf')}回花园</button></div>`;
 }
 function treasurePage() {
   return treasureMarkup({...treasure,paused:treasure.paused||Boolean(modal)}).replace('<div class="treasure-controls">',`${gardenSummaryMarkup(state)}<div class="treasure-controls">`);
@@ -283,7 +302,8 @@ function modalView() {
   if(modal==='album')return albumDetailMarkup(selectedAlbum);
   let content='';
   if(modal==='hint'){const q=currentQuestion(state);if(!q)return '';content=`<h2 id="dialog-title">一起想一想</h2><div class="hint-tabs" role="group" aria-label="选择小工具"><button class="secondary" data-action="hint" data-kind="frames" aria-pressed="${hintMode==='frames'}">${icon('frame')}摆一摆</button><button class="secondary" data-action="hint" data-kind="line" aria-pressed="${hintMode==='line'}">${icon('line')}走数轴</button>${(state.grade||1)>=2&&q.kind!=='cards'&&q.kind!=='chain'?`<button class="secondary" data-action="hint" data-kind="column" aria-pressed="${hintMode==='column'}">${icon('frame')}列竖式</button>`:''}</div><div class="hint-panel" id="hint-panel">${hintMode==='line'?lineHint(q):hintMode==='column'?columnHint(q):frameHint(q)}</div><div class="modal-actions"><button class="primary" data-action="close-dialog">回到题目${icon('arrow')}</button></div>`;}
-  if(modal==='settings')content=`<h2 id="dialog-title">小设置</h2><div class="setting-row"><span class="modal-label">声音</span><button class="secondary" data-action="sound" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}${state.settings.sound?'开启':'关闭'}</button></div><div class="setting-row"><label class="modal-label" for="modal-motion">动画</label>${motionSelect('modal-motion')}</div><div class="settings-links"><button class="text-button" data-action="fullscreen">${icon('frame')}切换全屏</button><button class="text-button" data-action="app-help">${icon('leaf')}添加主屏幕</button><button class="text-button" data-action="nav" data-view="grownups">${icon('book')}给大人看</button></div><p class="audio-status" role="status">${safe(audioMessage())}</p><div class="modal-actions"><button class="primary" data-action="close-dialog">好了${icon('check')}</button></div>`;
+  if(modal==='settings')content=`<h2 id="dialog-title">小设置</h2>${difficultyControl()}<div class="setting-row"><span class="modal-label">声音</span><button class="secondary" data-action="sound" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}${state.settings.sound?'开启':'关闭'}</button></div><div class="setting-row"><label class="modal-label" for="modal-motion">动画</label>${motionSelect('modal-motion')}</div><div class="settings-links"><button class="text-button" data-action="fullscreen">${icon('frame')}切换全屏</button><button class="text-button" data-action="app-help">${icon('leaf')}添加主屏幕</button><button class="text-button" data-action="nav" data-view="grownups">${icon('book')}给大人看</button></div><p class="audio-status" role="status">${safe(audioMessage())}</p><div class="modal-actions"><button class="primary" data-action="close-dialog">好了${icon('check')}</button></div>`;
+  if(modal==='question-cycle')content=`<h2 id="dialog-title">这一轮已经练过啦</h2><p>这个难度下的新题已用完。开启新一轮后，题目可以再次出现；卡片和记录都会保留。</p><div class="modal-actions"><button class="primary" data-action="question-cycle">开始新一轮</button><button class="secondary" data-action="close-dialog">先不开始</button></div>`;
   if(modal==='app-help')content=`<h2 id="dialog-title">把花园放到主屏幕</h2><p>${safe(getInstallHint())}</p><p>从主屏幕图标进入可获得更沉浸的界面，效果由浏览器决定。公网版本不需要电脑开机或连接同一 Wi-Fi。浏览器支持时可以直接全屏；iPhone Safari 如不能直接全屏，请从主屏幕图标打开。进度保存在当前网址与浏览器，主屏幕入口的存档可能与 Safari 标签页分开。</p><div class="modal-actions"><button class="primary" data-action="close-dialog">知道啦</button></div>`;
   if(modal==='replace-session')content=`<h2 id="dialog-title">还有一趟没走完呢。</h2><p>「${level(state.session.levelId).title}」停在第 ${state.session.index+1} 个小任务。可以接着走，也可以开始新地点并换一组随机题。已经收藏的卡片都会保留。</p><div class="modal-actions"><button class="primary" data-action="resume">接着上次玩${icon('arrow')}</button><button class="secondary" data-action="begin-confirm" data-level="${selectedLevel}">开始「${level(selectedLevel).title}」</button><button class="text-button" data-action="close-dialog">先不换</button></div>`;
   if(modal==='reset')content=`<h2 id="dialog-title">要重新种下花园吗？</h2><p>这会删除这个浏览器里所有年级的卡片、练习记录和小游戏机会，无法撤销。</p><div class="modal-actions"><button class="primary" data-action="close-dialog">保留我的花园</button><button class="secondary danger" data-action="reset-confirm">确认重置本地进度</button></div>`;
@@ -314,11 +334,12 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   maintainMusic();
 }
 function openModal(name) {sounds.stopEffects();effects.pause();miniController?.pause();if(!modal)modalReturnFocus=document.activeElement?.getAttribute('data-action');modal=name;render({focusModal:true});}
-function closeModal() {miniController?.resume();const wasAlbum=modal==='album';modal='';if(!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused))){pauseScene(false);}render();if(wasAlbum)document.querySelector(`[data-action="album-open"][data-album="${albumReturnId||selectedAlbum}"]`)?.focus();else (document.querySelector(`[data-action="${modalReturnFocus}"]`)||document.querySelector('[data-action="settings"]'))?.focus();}
-function startLevel(id) {cardSelection=0;cardOrder=[];void requestImmersive();sounds.resume({unlock:false});effects.resume();beginSession(state,Number(id));hintMode='';hintClosed=false;save();go('lesson');}
-function startMagic(id,finale=false) {
+function closeModal() {if(view==='lesson'&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();miniController?.resume();const wasAlbum=modal==='album';modal='';if(!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused))){pauseScene(false);}render();if(wasAlbum)document.querySelector(`[data-action="album-open"][data-album="${albumReturnId||selectedAlbum}"]`)?.focus();else (document.querySelector(`[data-action="${modalReturnFocus}"]`)||document.querySelector('[data-action="settings"]'))?.focus();}
+function startLevel(id) {cardSelection=0;cardOrder=[];void requestImmersive();sounds.resume({unlock:false});effects.resume();try{beginSession(state,Number(id),{difficulty:state.difficulty||'standard'});}catch(error){if(error.code==='QUESTION_POOL_EXHAUSTED'){selectedLevel=Number(id);openModal('question-cycle');return;}notify('这一趟暂时没准备好，请换一关试试。');return;}hintMode='';hintClosed=false;save();go('lesson');}
+function startMagic(id,finale=false,completedRound=false) {
+  clearTimeout(completionTimer);completionTimer=0;
   if(finale?!hasFinale():!state.cards.includes(Number(id)))return;
-  void requestImmersive();stopMagic();stopTreasure();effects.stop();sounds.stopEffects();effects.resume();sounds.resume({unlock:false});magic={id:Number(id),finale,paused:false,finished:reduceMotion(),elapsed:0,last:0,frame:0};view='magic';modal='';render({preserveMagic:false});window.scrollTo({top:0,behavior:'instant'});
+  void requestImmersive();stopMagic();stopTreasure();effects.stop();sounds.stopEffects();effects.resume();sounds.resume({unlock:false});magic={id:Number(id),finale,completedRound,paused:false,finished:reduceMotion(),elapsed:0,last:0,frame:0};view='magic';modal='';render({preserveMagic:false});window.scrollTo({top:0,behavior:'instant'});
   if(!reduceMotion())magic.frame=requestAnimationFrame(magicTick);
   void chime('magic');effects.celebrate('magic',{origin:document.querySelector('.casting-character'),target:document.querySelector('.spell-focus')});
 }
@@ -385,12 +406,13 @@ app.addEventListener('click',event=>{
   if(action==='star-play-start'){launchMini();return;}
   if(action==='star-play-resume'){if(getPlayStatus(rewards).status==='running')go('mini');else go('mini-end');return;}
   if(action==='star-play-exit'){stopMini();rewards=finishPlay(rewards,Date.now(),'left');save();go('mini-end');return;}
+  if(action==='question-cycle'){resetQuestionCycle(state);save();startLevel(selectedLevel);return;}
   if(action==='grade'){const grade=Number(button.dataset.grade);if(![1,2,3].includes(grade)||grade===profiles.selectedGrade)return;save();selectGrade(profiles,grade);state=profiles.grades[grade];cardSelection=0;cardOrder=[];hintMode='';hintClosed=false;save();go('home');return;}
   if(action==='nav'){go(button.dataset.view);return;}
   if(action==='intro'){selectedLevel=id;go('intro');return;}
   if(action==='begin'){if(hasPaused()){selectedLevel=id;openModal('replace-session');}else startLevel(id);return;}
   if(action==='begin-confirm'){startLevel(id);return;}
-  if(action==='resume'){if(state.session?.feedback?.correct&&currentQuestion(state)?.kind==='cards'&&new Set(currentQuestion(state).deck).size!==currentQuestion(state).deck.length){const moved=advance(state);if(moved.completed){creditRound();save();go('reward');return;}}void requestImmersive();hintMode='';hintClosed=false;go('lesson');return;}
+  if(action==='resume'){if(state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct&&!state.session?.completed){finishRound();return;}if(state.session?.feedback?.correct&&currentQuestion(state)?.kind==='cards'&&new Set(currentQuestion(state).deck).size!==currentQuestion(state).deck.length){const moved=advance(state);if(moved.completed){creditRound();save();startMagic(state.session.levelId,false,true);return;}}void requestImmersive();hintMode='';hintClosed=false;go('lesson');return;}
   if(action==='pause'){save();go('rest');return;}
   if(action==='rest'){go('rest');return;}
   if(action==='map'){document.querySelector('#garden-map')?.scrollIntoView({behavior:reduceMotion()?'instant':'smooth',block:'start'});document.querySelector('#garden-map button')?.focus({preventScroll:true});return;}
@@ -415,7 +437,7 @@ app.addEventListener('click',event=>{
     const result=submitAnswer(state,cardSelection);
     if(result.ignored){notify('这组已经试过啦，换一张卡再试试。');return;}
     queueCharacterReaction(result);save();render();
-    if(result.correct){effects.burst('correct',{origin,target:document.querySelector('.companion-energy-target')});void chime();document.querySelector('[data-action="next"]')?.focus({preventScroll:true});}
+    if(result.correct){correctAnswerFeedback(origin);}
     else showRetryFeedback();return;
   }
   if(action==='answer'){
@@ -423,17 +445,16 @@ app.addEventListener('click',event=>{
     const rect=button.getBoundingClientRect(),origin={x:rect.left+rect.width/2,y:rect.top+rect.height/2};
     const result=submitAnswer(state,Number(button.dataset.value));if(result.ignored)return;queueCharacterReaction(result);
     save();render();
-    if(result.correct){effects.burst('correct',{origin,target:document.querySelector('.companion-energy-target')||document.querySelector('.story-energy')});void chime();document.querySelector('[data-action="next"]')?.focus({preventScroll:true});}
+    if(result.correct){correctAnswerFeedback(origin);}
     else showRetryFeedback();return;
   }
   if(action==='help'){markHint(state);hintMode='frames';save();openModal('hint');return;}
   if(action==='hint'){markHint(state);hintMode=button.dataset.kind;hintClosed=false;save();render();document.querySelector(`[data-action="hint"][data-kind="${button.dataset.kind}"]`)?.focus({preventScroll:true});return;}
-  if(action==='next'){cardSelection=0;cardOrder=[];const result=advance(state);hintMode='';hintClosed=false;save();if(result.completed){creditRound();save();go('reward');void chime('reward');effects.celebrate('reward',{target:document.querySelector('.reward-dancer')});}else{render({preserveScroll:false});document.querySelector('#problem-title')?.setAttribute('tabindex','-1');document.querySelector('#problem-title')?.focus({preventScroll:true});}return;}
+  if(action==='next'){cardSelection=0;cardOrder=[];const result=advance(state);hintMode='';hintClosed=false;save();if(result.completed){creditRound();save();startMagic(state.session.levelId,false,true);}else{render({preserveScroll:false});document.querySelector('#problem-title')?.setAttribute('tabindex','-1');document.querySelector('#problem-title')?.focus({preventScroll:true});}return;}
   if(action==='cast'){startMagic(id);return;}
   if(action==='finale'){startMagic(8,true);return;}
   if(action==='magic-pause'){magic.paused=!magic.paused;pauseScene(magic.paused);updateMagicPause();return;}
-  if(action==='magic-replay'){startMagic(magic.id,magic.finale);return;}
-  if(action==='treasure'){startTreasure();return;}
+    if(action==='treasure'){startTreasure();return;}
   if(action==='treasure-open'){openTreasure();return;}
   if(action==='treasure-pause'){
     treasure.paused=!treasure.paused;pauseScene(treasure.paused);
@@ -454,6 +475,7 @@ app.addEventListener('click',event=>{
   }
 });
 app.addEventListener('change',event=>{
+  if(event.target.dataset.setting==='difficulty'&&['easy','standard','challenge'].includes(event.target.value)){state.difficulty=event.target.value;save();render({focusModal:true});document.getElementById('garden-difficulty')?.focus();return;}
   if(event.target.dataset.setting==='motion'){
     state.settings.motion=event.target.value;save();applyMotion();const focused=event.target.id;
     if(reduceMotion()){effects.stop();if(view==='treasure'){stopTreasure();treasure.finished=treasure.opened;}}
@@ -471,10 +493,10 @@ document.addEventListener('keydown',event=>{
   }
 });
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){characterController?.pause();effects.pause();sounds.pause();if(view==='treasure'&&treasure.opened&&!treasure.finished){treasure.paused=true;document.querySelector('.treasure-view')?.classList.add('paused');const b=document.querySelector('[data-action="treasure-pause"]');if(b)b.innerHTML=icon('play')+'继续星光舞';}if(view==='magic'&&!magic.finished){magic.paused=true;updateMagicPause();}}else{if(!modal)characterController?.resume();maintainMusic();}
+  if(document.hidden){characterController?.pause();effects.pause();sounds.pause();if(view==='treasure'&&treasure.opened&&!treasure.finished){treasure.paused=true;document.querySelector('.treasure-view')?.classList.add('paused');const b=document.querySelector('[data-action="treasure-pause"]');if(b)b.innerHTML=icon('play')+'继续星光舞';}if(view==='magic'&&!magic.finished){magic.paused=true;updateMagicPause();}}else{if(!modal)characterController?.resume();maintainMusic();if(view==='lesson'&&!modal&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();}
 });
 window.addEventListener('pageshow',event=>{if(event.persisted){render({preserveMagic:false});}});
-window.addEventListener('pagehide',()=>{stopCharacter();miniController?.destroy();miniController=null;save();effects.stop();sounds.stop();});
+window.addEventListener('pagehide',()=>{clearTimeout(completionTimer);completionTimer=0;stopCharacter();miniController?.destroy();miniController=null;save();effects.stop();sounds.stop();});
 systemMotion.addEventListener('change',()=>{applyMotion();characterController?.setMotion(()=>reduceMotion()?'reduce':'full');if(reduceMotion()){effects.stop();if(view==='treasure'&&treasure.opened){stopTreasure();treasure.finished=true;render();}}if(view==='magic'&&reduceMotion()){stopMagic();magic.finished=true;render();}});
 save();
 render();

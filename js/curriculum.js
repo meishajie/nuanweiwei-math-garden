@@ -414,3 +414,61 @@ export function getQuestionBank(grade = 1, levelId = 1) {
   if (!GRADE_QUESTIONS[grade][levelId]) throw new RangeError('Unknown level');
   return GRADE_QUESTIONS[grade][levelId];
 }
+
+// Difficulty changes the arithmetic, never the saved grade or earned rewards.
+export const DIFFICULTIES = Object.freeze(['easy', 'standard', 'challenge']);
+export function difficultyRange(grade, levelId, difficulty = 'standard') {
+  const level = getLevels(grade).find(item => item.id === levelId);
+  if (!level || !DIFFICULTIES.includes(difficulty)) throw new RangeError('Unknown difficulty or level');
+  if (difficulty !== 'easy') return level.maxValue;
+  return grade === 1 ? [5, 10, 10, 10, 15, 15, 15, 20, 30, 50][levelId - 1]
+    : grade === 2 ? [20, 30, 30, 40, 50, 50, 60, 60, 100, 300][levelId - 1]
+      : [100, 200, 300, 300, 400, 500, 500, 500, 999, 999][levelId - 1];
+}
+function difficultyEquations(grade, level, difficulty) {
+  const maximum = difficultyRange(grade, level.id, difficulty);
+  const rows = [], used = new Set();
+  const add = (a, op, b, blank) => {
+    const result = op === '+' ? a + b : a - b;
+    if (result < 0 || result > maximum || (a === 0 && b === 0)) return;
+    const key = `${a}:${op}:${b}:${blank}`;
+    if (used.has(key)) return;
+    used.add(key);
+    const answer = {a, b, result}[blank];
+    rows.push(Object.freeze({id: `g${grade}-r4-${difficulty}-l${level.id}-${a}-${op === '+' ? 'add' : 'sub'}-${b}-${blank}`,
+      grade, levelId: level.id, kind: 'equation', a, b, op, blank, result, answer,
+      choices: choicesFor(answer, maximum, rows.length), review: false}));
+  };
+  // Enumerate small ranges fully. Larger profiles use a deterministic spread,
+  // avoiding a low-number bias while guaranteeing both operations.
+  if (maximum <= 30) {
+    for (let a = 0; a <= maximum; a += 1) for (let b = 0; b <= maximum; b += 1) {
+      for (const op of ['+', '-']) for (const blank of difficulty === 'challenge' ? ['result', 'a', 'b'] : ['result']) add(a, op, b, blank);
+    }
+  } else for (let index = 0; index < 4096 && rows.length < 360; index += 1) {
+    const a = mix(index * 2, grade * 900 + level.id) % (maximum + 1);
+    const b = mix(index * 2 + 1, grade * 900 + level.id) % (maximum + 1);
+    for (const op of ['+', '-']) add(a, op, b, difficulty === 'challenge' && index % 3 ? (index % 2 ? 'a' : 'b') : 'result');
+  }
+  return rows;
+}
+export const DIFFICULTY_QUESTIONS = Object.freeze(Object.fromEntries([1, 2, 3].map(grade => [grade,
+  Object.freeze(Object.fromEntries(DIFFICULTIES.map(difficulty => [difficulty,
+    Object.freeze(Object.fromEntries(getLevels(grade).map(level => {
+      const maximum = difficultyRange(grade, level.id, difficulty);
+      const current = GRADE_QUESTIONS[grade][level.id];
+      const filtered = current.filter(q => {
+        const numbers = q.kind === 'cards' ? [q.target, ...q.deck] : q.kind === 'chain' ? [q.result, ...q.terms] : [q.a, q.b, q.result];
+        if (Math.max(...numbers) > maximum) return false;
+        if (difficulty === 'easy') return q.kind === 'cards' ? q.pickCount === 2 : q.kind === 'equation' && q.blank === 'result' && !q.story;
+        return true;
+      });
+      const extra = difficultyEquations(grade, level, difficulty);
+      return [level.id, Object.freeze([...filtered, ...extra])];
+    })))
+  ])))
+])));
+export function getDifficultyBank(grade, levelId, difficulty = 'standard') {
+  difficultyRange(grade, levelId, difficulty);
+  return DIFFICULTY_QUESTIONS[grade][difficulty][levelId];
+}

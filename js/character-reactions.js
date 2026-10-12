@@ -1,5 +1,5 @@
 /* Articulated game presentation of the approved B1 art, not a new IP master. */
-const SOURCE = './assets/nuanweiwei-happy-cutout-v2.png';
+const SOURCE = './assets/nuanweiwei-happy-safari.png';
 const MODES = new Set(['idle', 'correct', 'retry']);
 const KINDS = new Set(['lesson', 'hero', 'reward', 'mini']);
 const LABELS = {

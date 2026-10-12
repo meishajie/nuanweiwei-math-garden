@@ -1,5 +1,5 @@
 import {answerTotals} from './round-summary.js';
-import { LEVELS, QUESTIONS, LEGACY_GENERATED_QUESTIONS, GRADE_QUESTIONS, getLevels } from './curriculum.js';
+import { LEVELS, QUESTIONS, LEGACY_GENERATED_QUESTIONS, GRADE_QUESTIONS, getLevels, DIFFICULTIES, DIFFICULTY_QUESTIONS, getDifficultyBank } from './curriculum.js?v=20261012-4';
 
 // No browser APIs, dates or storage. Random sampling is injected at session start.
 const VERSION = 1;
@@ -7,10 +7,10 @@ const RECENT_LIMIT = 12;
 const MAX_COUNT = 1_000_000_000;
 const LEVEL_IDS = LEVELS.map(level => level.id);
 const ALL_QUESTIONS = Object.fromEntries([1, 2, 3].map(grade => [grade, Object.fromEntries(LEVEL_IDS.map(id => [id,
-  [...(grade === 1 ? [...QUESTIONS[id].flat(), ...LEGACY_GENERATED_QUESTIONS[id]] : []), ...GRADE_QUESTIONS[grade][id]]
+  [...(grade === 1 ? [...QUESTIONS[id].flat(), ...LEGACY_GENERATED_QUESTIONS[id]] : []), ...GRADE_QUESTIONS[grade][id], ...DIFFICULTIES.flatMap(d => DIFFICULTY_QUESTIONS[grade][d][id])]
 ]))]));
 const BANK = new Map([1, 2, 3].flatMap(grade => LEVEL_IDS.flatMap(id => ALL_QUESTIONS[grade][id])).map(q => [q.id, q]));
-const ACTIVE_IDS = Object.fromEntries([1, 2, 3].map(grade => [grade, Object.fromEntries(LEVEL_IDS.map(id => [id, new Set(GRADE_QUESTIONS[grade][id].map(q => q.id))]))]));
+const ACTIVE_IDS = Object.fromEntries([1, 2, 3].map(grade => [grade, Object.fromEntries(LEVEL_IDS.map(id => [id, new Set(ALL_QUESTIONS[grade][id].filter(q => q.id.startsWith(`g${grade}-`)).map(q => q.id))]))]));
 const R2_IDS = Object.fromEntries(LEVEL_IDS.map(id => [id, new Set(LEGACY_GENERATED_QUESTIONS[id].map(q => q.id))]));
 const gradeOf = q => q.grade ?? 1;
 export function questionKey(q) {
@@ -18,6 +18,43 @@ export function questionKey(q) {
   if (q.kind === 'cards') return `${prefix}cards:${q.pickCount}:${q.target}:${q.deck.join(',')}`;
   if (q.kind === 'chain') return `${prefix}chain:${q.terms[0]}${q.ops[0]}${q.terms[1]}${q.ops[1]}${q.terms[2]}`;
   return `${prefix}${q.a}${q.op}${q.b}:${q.blank}`;
+}
+// Semantic identity ignores choice order, decks, story wording and level.
+export function questionSignature(q) {
+  const prefix = `g${gradeOf(q)}:`;
+  if (q.kind === 'cards') return `${prefix}cards:${q.pickCount}:${q.target}`;
+  if (q.kind === 'chain') {
+    if (q.ops.every(op => op === '+')) return `${prefix}chain:add:${[...q.terms].sort((a,b) => a-b).join(',')}`;
+    return `${prefix}chain:${q.terms[0]}${q.ops[0]}${q.terms[1]}${q.ops[1]}${q.terms[2]}`;
+  }
+  const blank = q.blank ?? 'result';
+  if (q.op === '+') {
+    if (blank === 'result') return `${prefix}add:${[q.a,q.b].sort((a,b)=>a-b).join(',')}:result`;
+    return `${prefix}add:missing:${blank === 'a' ? q.b : q.a}:${q.result}`;
+  }
+  return `${prefix}sub:${q.a}:${q.b}:${blank}`;
+}
+const KEY_SIGNATURES = Object.fromEntries([1,2,3].map(grade => [grade,Object.fromEntries(LEVEL_IDS.map(id => [id,new Map(ALL_QUESTIONS[grade][id].map(q => [questionKey(q), questionSignature(q)]))]))]));
+const ALL_SIGNATURES = Object.fromEntries([1,2,3].map(grade => [grade,new Set(LEVEL_IDS.flatMap(id => ALL_QUESTIONS[grade][id]).map(questionSignature))]));
+function seenQuestions(state) {
+  const seen = new Set(state.seenQuestionSignatures ?? []);
+  for (const [id, stage] of state.questionCycle ? [] : Object.entries(state.stages)) {
+    for (const r of stage.recent) { const q = BANK.get(r.questionId); if (q) seen.add(questionSignature(q)); }
+    for (const key of stage.readyQuestionKeys) {
+      const signature = KEY_SIGNATURES[state.grade ?? 1][id].get(key);
+      if (signature) seen.add(signature);
+    }
+  }
+  for (const q of state.session?.questions ?? []) seen.add(questionSignature(q));
+  return seen;
+}
+export class QuestionPoolExhaustedError extends Error {
+  constructor() { super('这一档的新题已练完，请选择其他难度或明确开始新一轮。'); this.name='QuestionPoolExhaustedError'; this.code='QUESTION_POOL_EXHAUSTED'; }
+}
+// Explicit user action only; retain rewards, totals and current journey.
+export function resetQuestionCycle(state) {
+  state.seenQuestionSignatures = (state.session?.questions ?? []).map(questionSignature);
+  state.questionCycle = (state.questionCycle ?? 0) + 1;
 }
 const KNOWN_KEYS = Object.fromEntries([1, 2, 3].map(grade => [grade, Object.fromEntries(LEVEL_IDS.map(id => [id, new Set(ALL_QUESTIONS[grade][id].map(questionKey))]))]));
 const copyQuestion = (q, review = q.review) => {
@@ -64,7 +101,8 @@ function reviewFor(state, levelId, roundId, group, avoid = new Set()) {
   for (const id of candidates) {
     const stage = state.stages[id];
     const recentKeys = new Set(stage.recent.slice(-3).map(r => questionKey(BANK.get(r.questionId))));
-    const available = GRADE_QUESTIONS[state.grade ?? 1][id].filter(q => !q.story && !groupKeys.has(questionKey(q))
+    const available = getDifficultyBank(state.grade ?? 1, id, state.difficulty ?? 'standard').filter(q => !q.story && (q.kind !== 'equation' || (q.a > 0 && q.b > 0)) && !groupKeys.has(questionKey(q))
+      && !avoid.has(questionSignature(q))
       && !stage.readyQuestionKeys.includes(questionKey(q))
       && !recentKeys.has(questionKey(q)));
     if (!available.length) continue;
@@ -99,29 +137,39 @@ export function beginSession(state, id, options = {}) {
     return value;
   };
   const stage = state.stages[id] ?? createStage();
+  const difficulty = options?.difficulty ?? state.difficulty ?? 'standard';
+  if (!DIFFICULTIES.includes(difficulty)) throw new RangeError('Unknown difficulty');
   const groupIndex = stage.visits % QUESTIONS[id].length;
-  const previous = new Set(state.session?.levelId === id ? state.session.questions.map(questionKey) : []);
+  const previous = seenQuestions(state);
   const used = new Set(), targets = [];
-  const take = (pool, count = 1) => {
-    const eligible = pool.filter(q => !used.has(questionKey(q)));
-    const fresh = eligible.filter(q => !previous.has(questionKey(q)));
-    const picked = shuffle(fresh.length >= count ? fresh : eligible, rng).slice(0, count);
-    if (picked.length !== count) throw new Error('Not enough distinct questions');
-    picked.forEach(q => { used.add(questionKey(q)); targets.push(q); });
+  const take = (pool, count = 1, optional = false) => {
+    const distinct = new Map();
+    for (const q of pool) if (!used.has(questionSignature(q)) && !previous.has(questionSignature(q))) distinct.set(questionSignature(q), q);
+    const picked = shuffle([...distinct.values()], rng).slice(0, count);
+    if (picked.length !== count && !optional) throw new QuestionPoolExhaustedError();
+    picked.forEach(q => { used.add(questionSignature(q)); targets.push(q); });
     return picked;
   };
-  const bank = GRADE_QUESTIONS[grade][id];
-  const stories = bank.filter(q => q.story);
-  if (stories.length) take(stories);
-  take(bank.filter(q => q.kind === 'cards' && q.pickCount === 2));
-  if (id >= 5) {
-    if (!targets.some(q => q.kind === 'chain')) take(bank.filter(q => q.kind === 'chain' && !q.story));
-    if (rng() < 0.5) take(bank.filter(q => q.kind === 'cards' && q.pickCount === 3));
+  const bank = getDifficultyBank(grade, id, difficulty).filter(q => q.kind !== 'equation' || (q.a > 0 && q.b > 0));
+  // Add/subtract always appear, including levels whose original focus was one operation.
+  const operationPool = op => {
+    const native = bank.filter(q => q.kind === 'equation' && !q.story && q.op === op && !q.id.includes('-r4-'));
+    return difficulty === 'standard' && native.some(q => !previous.has(questionSignature(q))) ? native : bank.filter(q => q.kind === 'equation' && !q.story && q.op === op);
+  };
+  take(operationPool('+'));
+  take(operationPool('-'));
+  take(bank.filter(q => q.kind === 'cards' && q.pickCount === 2), 1, true);
+  if (difficulty !== 'easy') {
+    take(bank.filter(q => q.story), 1, true);
+    if (id >= 5 && !targets.some(q => q.kind === 'chain')) take(bank.filter(q => q.kind === 'chain' && !q.story), 1, true);
+    if (id >= 5 && targets.length < 5 && rng() < 0.5) take(bank.filter(q => q.kind === 'cards' && q.pickCount === 3), 1, true);
   }
   const equations = bank.filter(q => q.kind === 'equation' && !q.story);
-  take(equations, 5 - targets.length);
-  const fallback = take(equations)[0];
-  targets.pop();
+  const nativeEquations = equations.filter(q => !q.id.includes('-r4-'));
+  const nativeFresh = new Set(nativeEquations.filter(q => !used.has(questionSignature(q)) && !previous.has(questionSignature(q))).map(questionSignature));
+  const missing = 6 - targets.length;
+  take(difficulty === 'standard' && nativeFresh.size >= missing ? nativeEquations : equations, missing);
+  const fallback = targets.pop();
   const ordered = shuffle(targets, rng).map(q => {
     const copy = copyQuestion(q, false);
     if (copy.kind !== 'cards') copy.choices = shuffle(copy.choices, rng);
@@ -132,13 +180,15 @@ export function beginSession(state, id, options = {}) {
   state.stages[id] = stage;
   state.grade = grade;
   state.rounds = increment(state.rounds);
-  const review = reviewFor(state, id, state.rounds, group, previous);
+  state.difficulty = difficulty;
+  const review = reviewFor(state, id, state.rounds, group, new Set([...previous, ...used]));
   if (review.question.kind !== 'cards') review.question.choices = reviewChoiceOrder.map(index => review.question.choices[index]);
   stage.visits = increment(stage.visits);
-  state.session = { grade, levelId: id, roundId: state.rounds, mode: 'random-v3', fallbackId: fallback.id, groupIndex, index: 0,
+  state.session = { grade, levelId: id, roundId: state.rounds, mode: 'random-v4', difficulty, fallbackId: fallback.id, groupIndex, index: 0,
     questions: group.map((q, index) => index === 3 ? review.question : q),
     results: [], assisted: false, attempts: 0, carriedAttempts: 0, wrongChoices: [], feedback: null,
     completed: false, reviewEvidence: review.evidence };
+  state.seenQuestionSignatures = [...new Set([...previous, ...state.session.questions.map(questionSignature)])];
   return state.session;
 }
 
@@ -376,7 +426,8 @@ function restoreStage(raw, id, state) {
 }
 
 function restoreSession(raw, state) {
-  const modern = raw?.mode === 'random-v3';
+  const newest = raw?.mode === 'random-v4';
+  const modern = raw?.mode === 'random-v3' || newest;
   const random = raw?.mode === 'random-v2' || modern;
   const migrated = modern && raw?.migration === 'unique-cards-v3';
   requireValid(isObject(raw) && LEVEL_IDS.includes(raw.levelId) && state.stages[raw.levelId]
@@ -416,8 +467,8 @@ function restoreSession(raw, state) {
     requireValid(fallback && gradeOf(fallback) === state.grade && fallback.levelId === raw.levelId
       && (modern ? ACTIVE_IDS[state.grade][raw.levelId].has(fallback.id) || (migrated && R2_IDS[raw.levelId].has(fallback.id)) : R2_IDS[raw.levelId].has(fallback.id))
       && fallback.kind === 'equation' && !fallback.story && (modern || !fallback.extension)
-      && targets.some(q => q.kind === 'cards' && q.pickCount === 2)
-      && (raw.levelId < 5 || targets.some(q => q.kind === 'chain'))
+      && (newest || targets.some(q => q.kind === 'cards' && q.pickCount === 2))
+      && (newest || raw.levelId < 5 || targets.some(q => q.kind === 'chain'))
       && (modern || raw.levelId < 9 || targets.filter(q => q.extension).length === 1));
     if (modern) requireValid(questions.every((q, index) => index < raw.results.length || q.kind !== 'cards' || new Set(q.deck).size === 6));
   }
@@ -467,7 +518,8 @@ function restoreSession(raw, state) {
     const last = results.at(-1);
     requireValid(last.attempts === raw.attempts + carried && (last.carriedAttempts ?? 0) === carried && last.assisted === raw.assisted);
   }
-  return { ...(modern ? {grade: state.grade} : {}), levelId: raw.levelId, roundId: raw.roundId,
+  if (newest) requireValid(DIFFICULTIES.includes(raw.difficulty) && new Set(questions.map(questionSignature)).size === 6);
+  return { ...(modern ? {grade: state.grade} : {}), ...(newest ? {difficulty:raw.difficulty} : {}), levelId: raw.levelId, roundId: raw.roundId,
     ...(random ? {mode: raw.mode, fallbackId: raw.fallbackId} : {}),
     ...(migrated ? {migration: 'unique-cards-v3', legacyMode: 'random-v2'} : {}), groupIndex: raw.groupIndex, index: raw.index,
     questions, results, assisted: raw.assisted, attempts: raw.attempts, ...(modern ? {carriedAttempts: carried} : {}), wrongChoices: [...raw.wrongChoices],
@@ -512,9 +564,9 @@ export function hydrate(input, options = {}) {
   const grade = options?.grade ?? 1;
   getLevels(grade);
   try {
-    // Reject unusually large inputs before parsing; normal fully played saves
-    // remain below 40 KiB because each skill retains at most 12 observations.
-    if (typeof input === 'string' && input.length > 200_000) return createState(grade);
+    // Reject unusually large inputs before parsing. Semantic history is finite;
+    // completed observations still retain at most 12 entries per skill.
+    if (typeof input === 'string' && input.length > 2_000_000) return createState(grade);
     const raw = typeof input === 'string' ? JSON.parse(input) : input;
     requireValid(isObject(raw) && raw.version === VERSION && (raw.grade ?? 1) === grade
       && (raw.grade !== undefined || grade === 1) && count(raw.completedQuestions) && count(raw.rounds));
@@ -542,6 +594,14 @@ export function hydrate(input, options = {}) {
     if (Object.hasOwn(raw,'answerStats')) {
       const totals=answerTotals({...state,answerStats:raw.answerStats});
       state.answerStats={firstTry:totals.firstTry,retried:totals.retried,unknown:totals.unknown};
+    }
+    if (raw.difficulty !== undefined) { requireValid(DIFFICULTIES.includes(raw.difficulty)); state.difficulty=raw.difficulty; }
+    if (raw.questionCycle !== undefined) { requireValid(count(raw.questionCycle)); state.questionCycle=raw.questionCycle; }
+    if (raw.seenQuestionSignatures !== undefined) {
+      requireValid(Array.isArray(raw.seenQuestionSignatures) && raw.seenQuestionSignatures.length <= ALL_SIGNATURES[grade].size
+        && new Set(raw.seenQuestionSignatures).size === raw.seenQuestionSignatures.length
+        && raw.seenQuestionSignatures.every(key => ALL_SIGNATURES[grade].has(key)));
+      state.seenQuestionSignatures=[...raw.seenQuestionSignatures];
     }
     // No object from the caller is retained; unknown fields are intentionally
     // absent. This is input validation, not anti-cheat or a learning diagnosis.

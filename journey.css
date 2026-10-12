@@ -1,0 +1,13 @@
+body[data-view=magic] #main:has(.round-summary){overflow-y:auto;}
+body[data-view=magic] .round-summary{flex:none;margin:8px auto;padding:10px 14px;}
+body[data-view=magic] .round-summary-answers{display:none;}
+body[data-view=magic] .round-summary h2{font-size:17px;}
+body[data-view=magic] .round-summary-count strong{font-size:28px;}
+body[data-view=magic] .round-summary-count{padding:6px;}
+body[data-view=magic] .magic-view{min-height:220px;}
+.difficulty-shortcut{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#e4d5ef;padding:5px 10px;border-radius:12px;background:#ffffff0a;}
+.difficulty-shortcut .icon{width:14px;height:14px;}
+.difficulty-note{font-size:12px;line-height:1.6;color:#73687d;margin:6px 0 14px;}
+.intro-difficulty{font-size:14px;color:#ead0a0;}
+.completion-pending{font-size:14px;color:#f5d98b;}
+@media(max-height:550px) and (orientation:landscape){body[data-view=magic] .magic-view{min-height:200px;}body[data-view=magic] .round-summary{max-width:430px;}}
