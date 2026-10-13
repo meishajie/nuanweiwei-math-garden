@@ -1,9 +1,9 @@
-import * as old from './engine-legacy.js?v=20261013-2';
-import {courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261013-2';
-import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261013-2';
-import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot} from './course-progression.js?v=20261013-2';
-import {answerTotals} from './round-summary.js?v=20261013-2';
-export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261013-2';
+import * as old from './engine-legacy.js?v=20261013-3';
+import {courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261013-3';
+import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261013-3';
+import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot} from './course-progression.js?v=20261013-3';
+import {answerTotals} from './round-summary.js?v=20261013-3';
+export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261013-3';
 const equalTree=(a,b)=>a===b||(a&&b&&typeof a==='object'&&typeof b==='object'&&Array.isArray(a)===Array.isArray(b)&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>Object.hasOwn(b,k)&&equalTree(a[k],b[k])));
 const clone=x=>JSON.parse(JSON.stringify(x)),isCourse=q=>q?.format==='course-v1',lookup=id=>lookupCourseQuestion(id)||old.legacyLookup(id);
 export function stageStatus(state,id){return state.courseSettings?(state.stages[id]?.visits?'practicing':'new'):old.stageStatus(state,id);}
@@ -86,7 +86,7 @@ export function dismissSuggestion(state){if(state.coaching)state.coaching.lastSu
 export function resetQuestionCycle(state){if(!state.courseVersion)return old.resetQuestionCycle(state);state.questionCycle=(state.questionCycle||0)+1;state.seenQuestionSignatures=(state.session?.completed?[]:(state.session?.questions||[])).map(questionSignature);}
 export function hydrate(input,options={}){
  const grade=options.grade??1;let raw;try{if(typeof input==='string'&&input.length>4000000)throw Error();raw=typeof input==='string'?JSON.parse(input):input;}catch{return createState(grade);}
- if(!raw?.courseVersion){const state=grade<4?old.hydrate(raw,options):createState(grade);try{if(raw?.courseSettings){const p=courseProfile(grade,raw.courseSettings);state.courseSettings={textbook:p.textbook,phase:p.phase};}}catch{}return state;}
+ if(!raw?.courseVersion){const state=grade<4?old.hydrate(raw,options):createState(grade);if(grade===4&&['easy','standard','challenge'].includes(raw?.difficulty))state.difficulty=raw.difficulty;try{if(raw?.courseSettings){const p=courseProfile(grade,raw.courseSettings);state.courseSettings={textbook:p.textbook,phase:p.phase};}}catch{}return state;}
  try{
   const check=b=>{if(!b)throw Error('Invalid course save');};const counter=v=>Number.isSafeInteger(v)&&v>=0&&v<=1000000000;check(raw.courseVersion===1&&raw.version===1&&raw.grade===grade&&[1,2,3,4].includes(grade));
   const p=courseProfile(grade,{...raw.courseSettings,difficulty:raw.difficulty}),state=clone(raw);check(Number.isSafeInteger(raw.completedQuestions)&&raw.completedQuestions>=0&&Number.isSafeInteger(raw.rounds)&&raw.rounds>=0);check(raw.settings&&typeof raw.settings.sound==='boolean'&&['system','reduce','full'].includes(raw.settings.motion));check(raw.stages&&Object.keys(raw.stages).length<=10&&Array.isArray(raw.cards)&&new Set(raw.cards).size===raw.cards.length);

@@ -26,7 +26,7 @@ export function getImmersiveStatus() {
 export function getInstallHint() {
   const status = getImmersiveStatus();
   if (status.standalone) return '已从主屏幕进入，和暖尾尾一起沉浸试玩。';
-  if (status.platform === 'ios') return '如果 Safari 不能直接全屏：点「分享」→「添加到主屏幕」，如有「作为网页 App 打开」选项请开启。以后从主屏幕的花园图标进入，不显示 Safari 地址栏。';
+  if (status.platform === 'ios') return 'iPhone 上的 Safari 或 Chrome 若不支持网页直接全屏：点地址栏旁的「分享」→「添加到主屏幕」。如有「作为网页 App 打开」选项，请开启。以后从花园图标进入，可隐藏浏览器地址栏。';
   if (status.platform === 'android') return '想从桌面进入：在浏览器菜单找「添加到主屏幕」。是否提供该选项取决于浏览器；也可以点游戏内的全屏按钮。';
   return '点全屏按钮进入沉浸模式；手机和 iPad 也可以添加主屏幕入口。';
 }
@@ -42,12 +42,12 @@ export function requestImmersive() {
   if (!root || status.fullscreen) return Promise.resolve(status);
   try {
     // Do not move this call behind an await, timer, animation, or render promise.
-    if (root.requestFullscreen) return settled(root.requestFullscreen({navigationUI: 'hide'}));
-    if (root.webkitRequestFullscreen) return settled(root.webkitRequestFullscreen());
+    if (root.requestFullscreen && document.fullscreenEnabled !== false) return settled(root.requestFullscreen({navigationUI: 'hide'}));
+    if (root.webkitRequestFullscreen && document.webkitFullscreenEnabled !== false) return settled(root.webkitRequestFullscreen());
   } catch {
     // Older WebKit can expose a prefixed API while the standard call throws.
     try {
-      if (root.webkitRequestFullscreen) return settled(root.webkitRequestFullscreen());
+      if (root.webkitRequestFullscreen && document.webkitFullscreenEnabled !== false) return settled(root.webkitRequestFullscreen());
     } catch { /* Immersive page layout remains playable without native fullscreen. */ }
   }
   return Promise.resolve(getImmersiveStatus());
@@ -80,8 +80,11 @@ export function initImmersive() {
     root.classList.toggle('is-standalone', status.standalone);
     root.classList.toggle('is-immersive', status.immersive);
     root.dataset.immersive = String(status.immersive);
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    if (viewportHeight) root.style.setProperty('--app-height', `${Math.round(viewportHeight)}px`);
+    const viewport=window.visualViewport,height=viewport?.height||window.innerHeight,width=viewport?.width||window.innerWidth;
+    if(Number.isFinite(height)&&height>0){root.style.setProperty('--app-height', `${Math.floor(height)}px`);root.dataset.viewportShort=String(height<=380);}
+    if(Number.isFinite(width)&&width>0)root.style.setProperty('--app-width', `${Math.floor(width)}px`);
+    root.style.setProperty('--app-top', `${Math.max(0,viewport?.offsetTop||0)}px`);
+    root.style.setProperty('--app-left', `${Math.max(0,viewport?.offsetLeft||0)}px`);
     const key = JSON.stringify(status);
     if (lastStatus !== key) {
       lastStatus = key;
@@ -93,6 +96,7 @@ export function initImmersive() {
   window.addEventListener('resize', sync);
   window.addEventListener('orientationchange', sync);
   window.visualViewport?.addEventListener('resize', sync);
+  window.visualViewport?.addEventListener('scroll', sync);
   if (query?.addEventListener) query.addEventListener('change', sync);
   else query?.addListener?.(sync);
   sync();
@@ -102,6 +106,7 @@ export function initImmersive() {
     window.removeEventListener('resize', sync);
     window.removeEventListener('orientationchange', sync);
     window.visualViewport?.removeEventListener('resize', sync);
+    window.visualViewport?.removeEventListener('scroll', sync);
     if (query?.removeEventListener) query.removeEventListener('change', sync);
     else query?.removeListener?.(sync);
   };

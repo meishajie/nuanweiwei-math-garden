@@ -1,4 +1,4 @@
-import {createState, hydrate} from './engine.js?v=20261013-2';
+import {createState, hydrate} from './engine.js?v=20261013-3';
 
 export const GRADES = Object.freeze([1, 2, 3, 4]);
 const validGrade = value => GRADES.includes(value);
@@ -24,15 +24,17 @@ export function hydrateProfiles(raw, legacyRaw = null) {
     for (const grade of GRADES) profiles.grades[grade] = hydrate(parsed.grades[grade], {grade,preserveQuestions:true});
     // A still-open older tab may have written valid first-grade progress.
     const old = fallback.grades[1], first = profiles.grades[1];
+    if(Array.isArray(parsed.resetGrades))profiles.resetGrades=[...new Set(parsed.resetGrades.filter(validGrade))];
+    const explicitRestart=profiles.resetGrades?.includes(1);
     const keepsCards = first.cards.every(id=>old.cards.includes(id));
     const keepsStages = Object.entries(first.stages).every(([id,s])=>
       (old.stages[id]?.completedRounds||0)>=s.completedRounds
       && (old.stages[id]?.independent||0)>=s.independent
       && (old.stages[id]?.supported||0)>=s.supported);
     const later = old.completedQuestions>first.completedQuestions || old.cards.length>first.cards.length || old.rounds>first.rounds;
-    if(!first.courseVersion&&later&&keepsCards&&keepsStages&&old.completedQuestions>=first.completedQuestions) profiles.grades[1]=old;
-    else if(later) profiles.retainedLegacy=old;
-    else if(parsed.retainedLegacy) profiles.retainedLegacy=hydrate(parsed.retainedLegacy,{grade:1,preserveQuestions:true});
+    if(!explicitRestart&&!first.courseVersion&&later&&keepsCards&&keepsStages&&old.completedQuestions>=first.completedQuestions) profiles.grades[1]=old;
+    else if(!explicitRestart&&later) profiles.retainedLegacy=old;
+    else if(!explicitRestart&&parsed.retainedLegacy) profiles.retainedLegacy=hydrate(parsed.retainedLegacy,{grade:1,preserveQuestions:true});
     syncSettings(profiles, profiles.settings);
     return profiles;
   } catch { return fallback; }

@@ -1,0 +1,43 @@
+/* Match the visible viewport, including mobile browser chrome and pinch offsets. */
+body .modal-backdrop{
+ inset:auto;top:var(--app-top,0px);left:var(--app-left,0px);
+ width:min(var(--app-width,100vw),100vw);height:min(var(--app-height,100dvh),100dvh);box-sizing:border-box;
+ padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+ overflow:hidden;align-items:center;
+}
+body .modal-backdrop>.modal{
+ display:flex;flex-direction:column;min-height:0;max-height:100%;overflow:hidden;
+ gap:12px;padding:18px;box-sizing:border-box;margin:auto;flex-shrink:1;
+}
+body .modal-backdrop>.settings-dialog{max-width:540px}
+body .modal-backdrop>.lesson-help{max-width:780px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:0 0 auto;min-height:44px}
+.modal .modal-header h2{font-size:22px;margin:0;min-width:0;line-height:1.4;overflow-wrap:anywhere}
+.modal .modal-header .modal-close{position:static;flex:0 0 44px;min-width:44px;min-height:44px}
+.modal-content{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable;overflow-wrap:anywhere}
+.modal-content>*{min-width:0}
+.modal .modal-actions{flex:0 0 auto;margin:0;gap:8px;padding-top:5px}
+.modal .modal-actions button{min-height:48px;width:100%;flex-shrink:0}
+.settings-dialog .course-settings{margin:0 0 12px;gap:14px}
+.settings-dialog .extra-settings summary{min-height:44px;padding:10px 0;font-size:14px}
+.restart-settings{border-top:1px solid #ded4e5;margin-top:10px;padding-top:12px;display:grid;gap:8px}
+.restart-settings button{min-height:48px;font-size:14px}
+.restart-settings p{margin:0;font-size:12px}
+@media(max-height:430px){
+ body .modal-backdrop>.modal{padding:10px 14px;gap:6px;border-radius:18px}
+ .modal .modal-header h2{font-size:19px}
+ .modal .modal-actions{padding:0;gap:6px}
+ .modal .modal-actions button{min-height:44px;padding:8px}
+}
+
+/* Cap the whole game as well as dialogs while browser bars animate or rotate. */
+:root{--visible-height:min(var(--app-height,100dvh),100dvh)}
+body[data-view]{height:var(--visible-height);min-height:0}
+body[data-view] .shell{height:calc(var(--visible-height) - env(safe-area-inset-top))}
+html[data-viewport-short=true] .has-course .problem-content{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(180px,1.2fr);gap:3px}
+html[data-viewport-short=true] .has-course .question-companion{grid-column:1;grid-row:1 / span 3}
+html[data-viewport-short=true] .has-course .course-story{grid-column:2;font-size:12px;line-height:1.35;padding:1px 4px}
+html[data-viewport-short=true] .has-course .course-equation{grid-column:2;font-size:18px;line-height:1.4;padding:0}
+html[data-viewport-short=true] body[data-view=lesson] .has-course .answers.course-answers{grid-column:2;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+html[data-viewport-short=true] body[data-view=lesson] .has-course .course-answers .answer{height:44px;min-height:44px;font-size:18px;padding:2px;line-height:1.2}
+html[data-viewport-short=true] .has-course .lesson-actions{min-height:44px;padding:0}
