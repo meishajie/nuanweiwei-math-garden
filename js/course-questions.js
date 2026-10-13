@@ -1,98 +1,78 @@
-import {courseProfile,availableTopics,bankTopics,TOPICS} from './course-catalog.js?v=20261013-1';
-import {number,decimal,operation,calculate,expressionText,expressionSteps,expressionSignature,formatValue,valuesEqual,symbol} from './course-math.js?v=20261013-1';
-const cache=new Map();
-function random(seed){let x=(Math.imul(seed+41,2654435761)>>>0)||1;return (min,max)=>{x^=x<<13;x^=x>>>17;x^=x<<5;return min+((x>>>0)%(max-min+1));};}
-export function makeCourseQuestion(profile,levelId,topicId,serial) {
- const p=courseProfile(profile.grade,profile),topic=TOPICS[topicId];
- if(!topic||!bankTopics(p).includes(topicId)||!Number.isInteger(serial)||serial<0||serial>799||!Number.isInteger(levelId)||levelId<1||levelId>10)throw new RangeError('Unknown course question');
- const r=random(serial+levelId*811+p.grade*103),easy=p.difficulty==='easy',hard=p.difficulty==='challenge';let expr,value;
- const factorMax=easy?5:9;
- if(topic.family==='addsub'){
-   const max=topic.carryOnly||topic.borrowOnly?20:easy?Math.max(5,Math.floor(topic.max/2)):topic.max;
-   let a=max<=20?1+serial%max:r(1,max),b=max<=20?1+Math.floor(serial/max)%max:r(1,max),add=topic.onlyOp?topic.onlyOp==='+':max<=20?Math.floor(serial/(max*max))%2===0:serial%2===0;
-   if(topic.oral){a=r(10,max);b=serial%3?r(1,9):r(1,9)*10;}
-   if(topic.carryOnly){a=r(1,9);b=r(1,9);if(a+b<=10)return null;}
-   if(topic.borrowOnly){a=r(11,19);b=r(1,9);if(a%10>=b)return null;}
-   if(topic.oral&&!add&&a<b)return null;
-   if(add&&a+b>max)return null;
-   const x=add?a:Math.max(a,b),y=add?b:Math.min(a,b);
-   if(easy&&max>20){let carry=0,count=0;for(let z=0;z<String(x).length;z++){const u=Math.floor(x/10**z)%10,v=Math.floor(y/10**z)%10;const next=add?u+v+carry>=10:u-carry<v;if(next)count++;carry=Number(next);}if(count>1)return null;}
-   expr=operation(add?'+':'-',number(x),number(y));
- }else if(topic.family==='multiply'){
-   const digits=topic.digits,lower=digits===1?1:10**(digits-1),upper=digits===1?Math.min(factorMax,topic.maxKnownFactor||9):10**digits-1;
-   let a=r(hard?Math.max(lower,Math.ceil(upper*.55)):lower,easy?Math.min(upper,lower*4):hard?upper:digits===1?upper:Math.floor(upper*.75)),b=topic.factorDigits===2?r(hard?50:10,easy?30:hard?99:69):r(hard?6:1,factorMax);
-   if(topic.noCarry){a=r(10,easy?40:hard?49:29);b=r(1,easy?3:hard?4:3);}
-   if(digits===1&&topic.maxKnownFactor&&hard)a=r(Math.max(1,Math.ceil(topic.maxKnownFactor/2)),topic.maxKnownFactor);
-   if(easy&&digits>1)a=Math.max(lower,Math.floor(a/10)*10);
-   if(topic.maxResult&&a*b>topic.maxResult)return null;
-   if(topic.noCarry&&String(a).split('').some(d=>Number(d)*b>=10))return null;
-   expr=operation('*',number(a),number(b));
- }else if(['divide','remainder'].includes(topic.family)){
-   const d=topic.divisorDigits===2?r(10,easy?30:99):r(hard?Math.max(2,Math.ceil((topic.maxKnownFactor||9)/2)):2,Math.min(factorMax,topic.maxKnownFactor||9)),max=topic.digits===1?d*factorMax:10**topic.digits-1,min=topic.digits===1?d:10**(topic.digits-1),lo=Math.max(1,Math.ceil(min/d)),hi=Math.floor(max/d);
-   if(lo>hi)return null;
-   const quotient=r(hard?Math.max(lo,Math.ceil(hi*.55)):lo,hi),allowRemainder=topic.family==='remainder'||(topic.digits>=2&&!topic.noRegroup&&!easy&&serial%5===0&&bankTopics(p).includes('remainder')),remainder=allowRemainder?r(1,Math.min(d-1,Math.max(1,max-d*quotient))):0;
-   if(d*quotient+remainder>max)return null;
-   if(topic.noRegroup&&String(d*quotient).split('').some(n=>Number(n)%d!==0))return null;
-   expr=operation('/',number(d*quotient+remainder),number(d));
-   if(remainder)value={kind:'remainder',quotient,remainder};
- }else if(topic.family==='decimal'||topic.family==='decimalMultiply'){
-   const scale=easy?1:topic.scale,a=topic.family==='decimalMultiply'?decimal(r(1,easy?19:hard?999:99),hard?2:1):decimal(r(1,easy?49:999),scale),b=topic.family==='decimalMultiply'?decimal(r(1,easy?5:99),easy?0:1):decimal(r(1,easy?29:499),scale);
-   if(topic.family==='decimalMultiply')expr=operation('*',number(a),number(b));
-   else {const subtract=serial%2===1,greater=calculate(operation('-',number(a),number(b))).coefficient>=0;expr=operation(subtract?'-':'+',number(subtract&&!greater?b:a),number(subtract&&!greater?a:b));}
- }else if(topic.family==='laws'){
-   const a=r(2,factorMax),b=r(10,99),c=100-b;
-   expr=easy?operation('*',number(a),number(100)):operation('+',operation('*',number(a),number(b)),operation('*',number(a),number(c)));
- }else {
-   const a=r(2,factorMax),b=r(2,factorMax),c=r(1,easy?9:30),topics=availableTopics(p),canMultiply=!topic.addSubOnly&&bankTopics(p).some(k=>TOPICS[k].family==='multiply');
-   if(!canMultiply)expr=operation('-',operation('+',number(a+c),number(b)),number(c));
-   else if(serial%4===0)expr=operation('+',operation('/',number(a*b),number(b)),number(c));
-   else if(serial%4===1)expr=operation('-',operation('*',number(a),number(b)),number(Math.min(c,a*b)));
-   else if(serial%4===2)expr=operation('*',operation('+',number(a),number(c)),number(b));
-   else expr=operation('+',operation('*',number(a),number(b)),number(c));
-   if(easy)expr=canMultiply?operation('*',number(a),number(b)):operation('+',number(a),number(b));
-   if(topicId==='mixed4'&&!easy){
-     const hasThreeDigits=bankTopics(p).includes('mul32'),left=hasThreeDigits?a*10:Math.min(a*10,80),right=hasThreeDigits?b*10:Math.min(b*10,90-left),factor=Math.min(c,9);
-     expr=operation('*',operation('+',number(left),number(right)),number(factor));
-     if(hard)expr=operation('-',expr,number(Math.min(c,left+right)));
-   }
+import * as v1 from './course-questions-v1.js?v=20261013-2';
+import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261013-2';
+import {decimal,number,operation,formatValue,expressionText,expressionSignature,calculate,valuesEqual} from './course-math.js?v=20261013-2';
+export {makeCourseQuestion} from './course-questions-v1.js?v=20261013-2';
+const cache=new Map(),templates=new Map(),scopeCache=new Map(),forms=['plain','right','left','story'];
+function sourceQuestion(p,topic,serial){
+ const t=TOPICS[topic],modes=p.difficulty==='easy'?['easy']:p.difficulty==='standard'?['easy','standard']:['easy','standard','challenge'];let mode=modes[(serial%7)%modes.length];
+ if(p.difficulty==='easy'&&t.family==='addsub'&&t.max<=20)mode='standard';
+ if(p.difficulty==='easy'&&(['remainder'].includes(t.family)||(t.family==='divide'&&(t.digits===1||t.noRegroup))||(t.family==='multiply'&&t.digits===1)))mode='standard';
+ const base=v1.makeCourseQuestion({...p,difficulty:mode},1,topic,serial);if(!base)return null;let expression=base.expression;
+ if(mode==='easy'&&t.family==='laws')expression=operation('*',number(10+serial%40),number(10*(1+Math.floor(serial/40)%4)));
+ if(mode==='easy'&&t.family==='mixed'){
+  const a=10+(serial*7)%70,b=1+(serial*11)%9,x=1+serial%9,y=1+Math.floor(serial/9)%9,kind=t.addSubOnly?serial%2:serial%4;
+  expression=kind===0?operation('+',number(a),number(b)):kind===1?operation('-',number(a),number(b)):kind===2?operation('*',number(x),number(y)):operation('/',number(x*y),number(y));
  }
- const isRemainder=value?.kind==='remainder',result=isRemainder?value:calculate(expr);
- const knownDivision=(n,d)=>bankTopics(p).some(id=>{const t=TOPICS[id];if(t.family!=='divide'||n.scale||d.scale||d.coefficient<=0||n.coefficient%d.coefficient)return false;const x=n.coefficient,y=d.coefficient;if(t.digits===1)return y<=Math.min(t.maxKnownFactor||9,9)&&x/y<=9;if(x>10**t.digits-1||y>(t.divisorDigits===2?99:9))return false;if(t.noRegroup&&String(x).split('').some(digit=>Number(digit)%y!==0))return false;return true;});
- let missing=hard&&!isRemainder&&expr.left.type==='number'&&expr.right.type==='number'&&serial%4===0&&!topic.oral&&topic.family!=='decimalMultiply';
- if(missing&&expr.op==='*')missing=knownDivision(result,expr.left.value);
- if(missing&&expr.op==='/')missing=knownDivision(expr.left.value,result);
- if(missing&&topic.carryOnly)missing=bankTopics(p).some(id=>['borrow20','add20Minus','add20'].includes(id));
- value=missing?expr.right.value:result;
- const candidates=[value];
- for(const offset of [1,-1,2,-2,10,-10]){
-   const next=value.kind==='remainder'?(candidates.length%2?{kind:'remainder',quotient:value.quotient,remainder:((value.remainder+offset)%expr.right.value.coefficient+expr.right.value.coefficient)%expr.right.value.coefficient}:{kind:'remainder',quotient:value.quotient+offset,remainder:value.remainder}):decimal(value.coefficient+offset,value.scale);
-   if((next.kind==='remainder'?next.quotient>=0&&next.remainder>=0&&next.remainder<expr.right.value.coefficient:next.coefficient>=0&&(topic.family!=='addsub'||next.coefficient<=topic.max))&&!candidates.some(v=>valuesEqual(v,next)))candidates.push(next);
-   if(candidates.length===4)break;
+ if(['mixed','laws'].includes(t.family)&&!learnedExpression(p,expression))return null;
+ const changed=expression!==base.expression;return {...base,profile:p,expression,...(changed?{resultValue:calculate(expression)}:{})};
+}
+
+function scope(p){const key=`${p.textbook}:${p.grade}:${p.phase}`;if(!scopeCache.has(key))scopeCache.set(key,bankTopics(p));return scopeCache.get(key);}
+function knownDivision(p,n,d){return scope(p).some(id=>{const t=TOPICS[id];if(t.family!=='divide'||n.scale||d.scale||d.coefficient<=0||n.coefficient%d.coefficient)return false;const x=n.coefficient,y=d.coefficient;if(t.digits===1)return y<=Math.min(t.maxKnownFactor||9,9)&&x/y<=9;if(x>10**t.digits-1||y>(t.divisorDigits===2?99:9))return false;if(t.noRegroup&&String(x).split('').some(digit=>Number(digit)%y!==0))return false;return true;});}
+function knownMultiplication(p,a,b){if(a.scale||b.scale)return false;return scope(p).some(id=>{const t=TOPICS[id];if(t.family!=='multiply')return false;const small=Math.min(a.coefficient,b.coefficient),large=Math.max(a.coefficient,b.coefficient);if(t.digits===1)return large<=9&&small<=(t.maxKnownFactor||9);if(large>10**t.digits-1||small>(t.factorDigits===2?99:9))return false;if(t.noCarry&&(large*small>t.maxResult||String(large).split('').some(d=>Number(d)*small>=10)))return false;return true;});}
+function knownAddSub(p,a,b,op){if(a.scale||b.scale)return scope(p).some(id=>TOPICS[id].family==='decimal');return scope(p).some(id=>{const t=TOPICS[id];if(t.family!=='addsub'||(t.onlyOp&&t.onlyOp!==op))return false;const x=a.coefficient,y=b.coefficient,result=op==='+'?x+y:x-y;if(result<0||Math.max(x,y,result)>t.max)return false;if(t.oral&&!(Math.min(x,y)<=9||Math.min(x,y)%10===0))return false;return true;});}
+export function learnedExpression(p,e){if(e.type==='number')return true;if(!learnedExpression(p,e.left)||!learnedExpression(p,e.right))return false;const a=calculate(e.left),b=calculate(e.right);return e.op==='*'?knownMultiplication(p,a,b):e.op==='/'?knownDivision(p,a,b):knownAddSub(p,a,b,e.op);}
+function missingAllowed(q,side){const e=q.expression,p=q.profile,t=TOPICS[q.topicId];if(e.left.type!=='number'||e.right.type!=='number'||q.resultValue.kind==='remainder'||(t.oral&&side==='right'))return false;
+ if(t.family==='decimalMultiply')return false;
+ if(t.carryOnly&&!scope(p).some(id=>['borrow20','add20Minus','add20'].includes(id)))return false;
+ if(e.op==='*')return knownDivision(p,q.resultValue,side==='right'?e.left.value:e.right.value);
+ if(e.op==='/')return side==='right'?knownDivision(p,e.left.value,q.resultValue):knownMultiplication(p,q.resultValue,e.right.value);
+ return ['+','-'].includes(e.op);
+}
+function storyFor(q){const e=q.expression;if(e.left.type==='number'&&e.right.type==='number'){
+ const a=formatValue(e.left.value),b=formatValue(e.right.value),dec=e.left.value.scale||e.right.value.scale;
+ if(e.op==='+')return dec?`两段小路长 ${a} 米和 ${b} 米，一共多长？`:`有 ${a} 颗星光，又找到 ${b} 颗。一共有多少颗？`;
+ if(e.op==='-')return dec?`丝带长 ${a} 米，用去 ${b} 米。还剩多长？`:`有 ${a} 颗星光，送出 ${b} 颗。还剩多少颗？`;
+ if(e.op==='*')return dec?`每米丝带要 ${a} 元，买 ${b} 米要多少元？`:`有 ${b} 队，每队 ${a} 颗星光。一共有多少颗？`;
+ if(e.op==='/')return `把 ${a} 颗星光，每 ${b} 颗放一队。能放几队${q.resultValue.kind==='remainder'?'，还剩几颗':''}？`;
  }
- for(let n=0;candidates.length<4;n++){const next=value.kind==='remainder'?{kind:'remainder',quotient:n,remainder:value.remainder}:decimal(n);if(!candidates.some(v=>valuesEqual(v,next)))candidates.push(next);}
- const position=serial%4;candidates.splice(position,0,candidates.shift());
- const text=missing?`${expressionText(expr.left)} ${symbol(expr.op)} ? = ${formatValue(result)}`:expressionText(expr);
- const id=`c1:${p.textbook}:${p.grade}:${p.phase}:${p.difficulty}:${levelId}:${topicId}:${serial}`;
- return {id,format:'course-v1',grade:p.grade,levelId,kind:'course',topicId,profile:p,expression:expr,blank:missing?'right':'result',resultValue:result,answerValue:value,answer:position,choices:[0,1,2,3],choiceValues:candidates,choiceLabels:candidates.map(formatValue),text,review:false};
+ const a=e.left;
+ if(e.op==='+'&&a.type==='operation'&&a.op==='*'&&a.left.type==='number'&&a.right.type==='number'&&e.right.type==='number')return `${formatValue(a.right.value)} 队各有 ${formatValue(a.left.value)} 颗星光，又添 ${formatValue(e.right.value)} 颗。一共多少颗？`;
+ return '';
 }
-export function lookupCourseQuestion(id){
- const parts=String(id).split(':');if(parts.length!==8||parts[0]!=='c1')return null;
- try{return makeCourseQuestion({textbook:parts[1],grade:Number(parts[2]),phase:Number(parts[3]),difficulty:parts[4]},Number(parts[5]),parts[6],Number(parts[7]));}catch{return null;}
+export function makeProgressionQuestion(profile,levelId,topicId,serial,form='plain'){
+ if(!forms.includes(form)||!Number.isInteger(levelId)||levelId<1||levelId>10)return null;
+ const p=courseProfile(profile.grade,profile),base=sourceQuestion(p,topicId,serial);return fromBase(base,levelId,serial,form);
 }
+function fromBase(base,levelId,serial,form){
+ if(!base)return null;const p=base.profile,topicId=base.topicId;
+ const q={...base,levelId,id:`c2:${p.textbook}:${p.grade}:${p.phase}:${p.difficulty}:${levelId}:${topicId}:${serial}:${form}`,blank:'result',presentation:form};
+ if(['right','left'].includes(form)&&!missingAllowed(q,form))return null;
+ if(form==='story'){q.story=storyFor(q);if(!q.story)return null;}
+ const e=q.expression;let value=q.resultValue;if(['left','right'].includes(form)){q.blank=form;value=e[form].value;}
+ const candidates=[value],limit=TOPICS[topicId].family==='addsub'?TOPICS[topicId].max:null;
+ for(const offset of [1,-1,2,-2,10,-10]){const d=e.right.type==='number'?e.right.value.coefficient:0,next=value.kind==='remainder'?(candidates.length%2?{...value,remainder:((value.remainder+offset)%d+d)%d}:{...value,quotient:value.quotient+offset}):decimal(value.coefficient+offset,value.scale);if((next.kind==='remainder'?next.quotient>=0:next.coefficient>=0&&(limit===null||next.coefficient<=limit))&&!candidates.some(v=>valuesEqual(v,next)))candidates.push(next);if(candidates.length===4)break;}
+ for(let n=0;candidates.length<4;n++){const next=value.kind==='remainder'?{...value,quotient:n}:decimal(n);if(!candidates.some(v=>valuesEqual(v,next)))candidates.push(next);}
+ const position=(serial+levelId)%4;[candidates[0],candidates[position]]=[candidates[position],candidates[0]];
+ q.answerValue=value;q.answer=position;q.choiceValues=candidates;q.choiceLabels=candidates.map(formatValue);
+ q.text=q.blank==='result'?expressionText(e):`${q.blank==='left'?'?':expressionText(e.left)} ${ {'+':'+','-':'−','*':'×','/':'÷'}[e.op]} ${q.blank==='right'?'?':expressionText(e.right)} = ${formatValue(q.resultValue)}`;
+ return q;
+}
+export function lookupCourseQuestion(id){if(String(id).startsWith('c1:'))return v1.lookupCourseQuestion(id);const parts=String(id).split(':');if(parts.length!==9||parts[0]!=='c2')return null;try{return makeProgressionQuestion({textbook:parts[1],grade:Number(parts[2]),phase:Number(parts[3]),difficulty:parts[4]},Number(parts[5]),parts[6],Number(parts[7]),parts[8]);}catch{return null;}}
 export function courseBank(profile,levelId){
- const p=courseProfile(profile.grade,profile),key=JSON.stringify([p,levelId]);if(cache.has(key))return cache.get(key);
- const rows=[];for(const topic of bankTopics(p))for(let i=0;i<800;i++){const q=makeCourseQuestion(p,levelId,topic,i);if(q)rows.push(q);}
- if(cache.size>=2)cache.delete(cache.keys().next().value);
- cache.set(key,rows);return rows;
+ const p=courseProfile(profile.grade,profile);if(!Number.isInteger(levelId)||levelId<1||levelId>10)throw new RangeError('Invalid station');const profileKey=JSON.stringify(p),key=JSON.stringify([p,levelId]);if(cache.has(key))return cache.get(key);
+ if(!templates.has(profileKey)){
+  const rows=[];for(const topic of scope(p))for(let i=0;i<800;i++){const base=sourceQuestion(p,topic,i);for(const form of forms){const q=fromBase(base,1,i,form);if(q)rows.push(q);}}
+  if(templates.size>=2)templates.delete(templates.keys().next().value);templates.set(profileKey,rows);
+ }
+ const rows=templates.get(profileKey).map(q=>{const parts=q.id.split(':'),serial=Number(parts[7]),values=[...q.choiceValues];parts[5]=String(levelId);[values[0],values[q.answer]]=[values[q.answer],values[0]];const answer=(serial+levelId)%4;[values[0],values[answer]]=[values[answer],values[0]];return {...q,id:parts.join(':'),levelId,answer,choiceValues:values,choiceLabels:values.map(formatValue)};});
+ if(cache.size>=2)cache.delete(cache.keys().next().value);cache.set(key,rows);return rows;
 }
-export function courseSignature(q){
- const e=q.expression,prefix=`g${q.grade}:`,scalar=e.left.type==='number'&&e.right.type==='number'&&!e.left.value.scale&&!e.right.value.scale;
- if(scalar&&['+','-'].includes(e.op)){const a=e.left.value.coefficient,b=e.right.value.coefficient,blank=q.blank==='right'?'b':'result';if(e.op==='+')return blank==='result'?`${prefix}add:${[a,b].sort((x,y)=>x-y).join(',')}:result`:`${prefix}add:missing:${a}:${q.resultValue.coefficient}`;return `${prefix}sub:${a}:${b}:${blank}`;}
- if(q.blank==='result'&&['+','-'].includes(e.op)&&e.right.type==='number'&&!e.right.value.scale&&e.left.type==='operation'&&['+','-'].includes(e.left.op)&&e.left.left.type==='number'&&e.left.right.type==='number'&&!e.left.left.value.scale&&!e.left.right.value.scale){const terms=[e.left.left.value.coefficient,e.left.right.value.coefficient,e.right.value.coefficient];return e.op==='+'&&e.left.op==='+'?`${prefix}chain:add:${terms.sort((a,b)=>a-b).join(',')}`:`${prefix}chain:${terms[0]}${e.left.op}${terms[1]}${e.op}${terms[2]}`;}
- return `${prefix}course:${q.blank}:${expressionSignature(e)}`;
-}
-export function courseExplanation(q){
- if(q.topicId==='laws'&&q.expression.left.type==='operation'){const a=q.expression.left.left.value.coefficient,b=q.expression.left.right.value.coefficient,c=q.expression.right.right.value.coefficient;return {headline:'把相同的因数提出来',steps:[`${a} × ${b} + ${a} × ${c} = ${a} × (${b} + ${c})`,`${b} + ${c} = ${b+c}`,`${a} × ${b+c} = ${a*(b+c)}`],start:0,deltas:[],goal:q.answer};}
- const steps=q.answerValue.kind==='remainder'?[`${expressionText(q.expression.left)} ÷ ${expressionText(q.expression.right)} = ${formatValue(q.answerValue)}`,`除数 × 商 + 余数 = 被除数；余数小于除数。`]:q.blank==='right'?[`${q.expression.op==='+'||q.expression.op==='*'?formatValue(q.resultValue):formatValue(q.expression.left.value)} ${['*','/'].includes(q.expression.op)?'÷':'−'} ${q.expression.op==='+'||q.expression.op==='*'?formatValue(q.expression.left.value):formatValue(q.resultValue)} = ${formatValue(q.answerValue)}`,`${q.text.replace('?',formatValue(q.answerValue))}`]:expressionSteps(q.expression);
- return {headline:TOPICS[q.topicId].label,steps,start:0,deltas:[],goal:q.answer,questionText:q.text};
-}
+
+export function courseSignature(q){if(q.blank==='left'){
+ const e=q.expression;if(e.op==='+')return v1.courseSignature({...q,blank:'right',expression:operation('+',e.right,e.left)});
+ if(e.op==='-')return !e.left.value.scale&&!e.right.value.scale?`g${q.grade}:sub:${e.left.value.coefficient}:${e.right.value.coefficient}:a`:`g${q.grade}:course:left:${expressionSignature(e)}`;
+ if(e.op==='*')return v1.courseSignature({...q,blank:'right',expression:operation('*',e.right,e.left)});
+ return `g${q.grade}:course:left:${v1.courseSignature({...q,blank:'result'})}`;
+ }return v1.courseSignature(q);}
+export function courseExplanation(q){if(q.blank!=='left')return v1.courseExplanation(q);const e=q.expression,a=formatValue(q.resultValue),b=expressionText(e.right),op={'+':'−','-':'+','*':'÷','/':'×'}[e.op];return {headline:'找到整体和部分的关系',steps:[`${a} ${op} ${b} = ${formatValue(q.answerValue)}`,q.text.replace('?',formatValue(q.answerValue))],start:0,deltas:[],goal:q.answer,questionText:q.text};}

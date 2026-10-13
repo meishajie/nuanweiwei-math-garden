@@ -1,11 +1,12 @@
-import * as legacy from './curriculum-legacy.js?v=20261013-1';
-import {courseProfile,availableTopics,TOPICS} from './course-catalog.js?v=20261013-1';
-import {courseBank} from './course-questions.js?v=20261013-1';
-export * from './curriculum-legacy.js?v=20261013-1';
+import * as legacy from './curriculum-legacy.js?v=20261013-2';
+import {courseProfile,availableTopics,TOPICS} from './course-catalog.js?v=20261013-2';
+import {courseBank} from './course-questions.js?v=20261013-2';
+import {levelPlan} from './course-progression.js?v=20261013-2';
+export * from './curriculum-legacy.js?v=20261013-2';
 export function getLevels(grade=1,settings=null){
  if(grade<=3&&!settings)return legacy.getLevels(grade);
  const p=courseProfile(grade,settings||{}),topics=availableTopics(p);
- return legacy.LEVELS.map((l,i)=>({...l,grade,skill:TOPICS[topics[i%topics.length]].label,range:TOPICS[topics[i%topics.length]].label,maxValue:99999,baseMaxValue:99999}));
+ return legacy.LEVELS.map(l=>{const plan=levelPlan(p,l.id);return {...l,grade,skill:plan.focus.map(id=>TOPICS[id].label).join('、'),range:plan.label,maxValue:99999,baseMaxValue:99999};});
 }
 export function difficultyRange(grade,levelId,difficulty='standard',settings=null){
  if(grade<=3&&!settings)return legacy.difficultyRange(grade,levelId,difficulty);

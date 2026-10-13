@@ -1,8 +1,9 @@
-import * as old from './engine-legacy.js?v=20261013-1';
-import {courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261013-1';
-import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261013-1';
-import {answerTotals} from './round-summary.js?v=20261013-1';
-export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261013-1';
+import * as old from './engine-legacy.js?v=20261013-2';
+import {courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261013-2';
+import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261013-2';
+import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot} from './course-progression.js?v=20261013-2';
+import {answerTotals} from './round-summary.js?v=20261013-2';
+export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261013-2';
 const equalTree=(a,b)=>a===b||(a&&b&&typeof a==='object'&&typeof b==='object'&&Array.isArray(a)===Array.isArray(b)&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>Object.hasOwn(b,k)&&equalTree(a[k],b[k])));
 const clone=x=>JSON.parse(JSON.stringify(x)),isCourse=q=>q?.format==='course-v1',lookup=id=>lookupCourseQuestion(id)||old.legacyLookup(id);
 export function stageStatus(state,id){return state.courseSettings?(state.stages[id]?.visits?'practicing':'new'):old.stageStatus(state,id);}
@@ -16,18 +17,44 @@ function shuffle(rows,rng){const out=[...rows];for(let i=out.length-1;i>0;i--){c
 export function beginSession(state,id,options={}){
  if(!options.course&&!state.courseSettings&&state.grade!==4)return old.beginSession(state,id,options);
  if(!Number.isInteger(id)||id<1||id>10)throw new RangeError('Invalid level');
- const profile=courseProfile(state.grade,{...(options.course||state.courseSettings||{}),difficulty:options.difficulty||state.difficulty||'standard'}),bank=courseBank(profile,id),topics=availableTopics(profile),focus=topics[(id-1)%topics.length],rng=options.rng||Math.random;
- const seen=new Set([...(state.seenQuestionSignatures||[]),...(!state.courseVersion&&state.grade<4?old.legacySeen(state):[])]),selected=[],used=new Set();
- const take=pool=>{const unique=new Map();for(const q of pool){const sig=questionSignature(q);if(!seen.has(sig)&&!used.has(sig))unique.set(sig,q);}const picked=shuffle([...unique.values()],rng)[0];if(picked){used.add(questionSignature(picked));selected.push(clone(picked));}return picked;};
- for(let i=0;i<4;i++)take(bank.filter(q=>q.topicId===focus));
- if(selected.length===4)take(bank.filter(q=>priorTopics(profile).includes(q.topicId)));
- while(selected.length<5)if(!take(bank))throw new old.QuestionPoolExhaustedError();
- // One spaced review, at least three completed problems after its anchor.
+ const profile=courseProfile(state.grade,{...(options.course||state.courseSettings||{}),difficulty:options.difficulty||state.difficulty||'standard'}),bank=courseBank(profile,id),plan=levelPlan(profile,id),ranks=questionRanks(bank),rng=options.rng||Math.random;
+ const seen=new Set([...(state.seenQuestionSignatures||[]),...(!state.courseVersion&&state.grade<4?old.legacySeen(state):[])]),questions=[],used=new Set();
+ const take=(pool,slot)=>{
+  const unique=new Map();for(const q of pool){const sig=questionSignature(q);if(!seen.has(sig)&&!used.has(sig)&&passesSlot(q,slot)&&ranks.get(q.id)>=slot.floor&&(slot.maxDemand===undefined||questionDemand(q)<=slot.maxDemand))unique.set(sig,q);}
+  const rows=[...unique.values()],preferred=rows.filter(q=>ranks.get(q.id)<=slot.ceiling),next=rows.length?Math.min(...rows.map(q=>ranks.get(q.id)))+0.07:0,eligible=preferred.length?preferred:rows.filter(q=>ranks.get(q.id)<=next),largest=slot.preferMax&&eligible.length?Math.max(...eligible.map(questionDemand)):null,picked=shuffle(largest===null?eligible:eligible.filter(q=>questionDemand(q)===largest),rng)[0];
+  if(picked){used.add(questionSignature(picked));return clone(picked);}return null;
+ };
+ const choose=(topics,slot)=>{
+  const pool=bank.filter(q=>topics.includes(q.topicId));
+  for(const form of [...new Set([slot.form,...(['left','right'].includes(slot.form)?['left','right']:[]),'plain'])]){const q=take(pool.filter(q=>q.presentation===form),slot);if(q)return q;}
+  return null;
+ };
  const observations=Object.values(state.topicRecords||{}).filter(r=>r.textbook===profile.textbook&&r.grade===profile.grade&&bankTopics(profile).includes(r.topicId)&&r.needReview&&state.completedQuestions-r.lastSeenAt>=3);
- let review=null,reviewQuestion=null;for(const r of observations){const picked=take(bank.filter(q=>q.topicId===r.topicId));if(picked){review=r;reviewQuestion=picked;break;}}
- if(!review&&!take(bank))throw new old.QuestionPoolExhaustedError();
- const questions=shuffle(selected,rng);questions[3].review=true;
- if(review){const reviewIndex=questions.findIndex(q=>q.id===reviewQuestion.id);if(reviewIndex>=0){[questions[3],questions[reviewIndex]]=[questions[reviewIndex],questions[3]];questions.forEach((q,i)=>q.review=i===3);}}
+ // Reserve the final task so it cannot be spent in the middle. For tiny pools,
+ // expand upward within learned content until all six different tasks can be fitted.
+ const finalSlot=plan.slots[5],finalForms=finalSlot.form==='left'||finalSlot.form==='right'?['left','right','plain']:['plain'];
+ const finalPool=bank.filter(q=>focusTopics(profile).includes(q.topicId)&&finalForms.includes(q.presentation));
+ let review=null;
+ for(const extra of [0,.12,.24,.4,.6,1]){
+  used.clear();questions.length=0;review=null;
+  const checkpoint=take(finalPool,{...finalSlot,ceiling:Math.min(1,finalSlot.ceiling+extra),preferMax:true});if(!checkpoint)continue;
+  let coreSlot=0;
+  for(const original of plan.slots.slice(0,5)){const slot=['practice','transfer'].includes(original.role)?{...original,maxDemand:questionDemand(checkpoint)}:original;let q;
+   if(slot.role==='warmup'){
+    for(const topic of foundationTopics(profile)){q=choose([topic],slot);if(q)break;}
+    q||=choose(plan.focus,slot)||choose(focusTopics(profile),slot);
+   }else if(slot.role==='review'){
+    for(const observation of observations){q=choose([observation.topicId],{...slot,floor:0});if(q){review=observation;break;}}
+    q||=choose(plan.focus,slot)||choose(focusTopics(profile),slot);
+   }else {
+    const topic=plan.focus[coreSlot++%plan.focus.length];q=choose([topic],slot)||choose(plan.focus,slot)||choose(focusTopics(profile),slot);
+   }
+   if(!q)break;
+   q.review=slot.role==='review';questions.push(q);
+  }
+  if(questions.length===5){questions.push(checkpoint);break;}
+ }
+ if(questions.length!==6)throw new old.QuestionPoolExhaustedError();
  state.courseVersion=1;state.courseSettings={textbook:profile.textbook,phase:profile.phase};state.difficulty=profile.difficulty;state.rounds++;
  const s=state.stages[id]||(state.stages[id]=stage());s.visits++;
  state.session={mode:'course-v1',grade:state.grade,levelId:id,roundId:state.rounds,profile,index:0,questions,results:[],assisted:false,attempts:0,carriedAttempts:0,wrongChoices:[],feedback:null,completed:false,reviewEvidence:review?{topicId:review.topicId,anchorAt:review.lastSeenAt,anchorRound:review.lastRound}:null,hintState:null};
@@ -56,7 +83,7 @@ export function difficultySuggestion(state){
  if(index<2&&r.every(v=>v.independent>=5))return ds[index+1];if(index>0&&r.every(v=>v.supported>=3))return ds[index-1];return null;
 }
 export function dismissSuggestion(state){if(state.coaching)state.coaching.lastSuggestedAt=state.coaching.completedCount||0;}
-export function resetQuestionCycle(state){if(!state.courseVersion)return old.resetQuestionCycle(state);state.questionCycle=(state.questionCycle||0)+1;state.seenQuestionSignatures=(state.session?.questions||[]).map(questionSignature);}
+export function resetQuestionCycle(state){if(!state.courseVersion)return old.resetQuestionCycle(state);state.questionCycle=(state.questionCycle||0)+1;state.seenQuestionSignatures=(state.session?.completed?[]:(state.session?.questions||[])).map(questionSignature);}
 export function hydrate(input,options={}){
  const grade=options.grade??1;let raw;try{if(typeof input==='string'&&input.length>4000000)throw Error();raw=typeof input==='string'?JSON.parse(input):input;}catch{return createState(grade);}
  if(!raw?.courseVersion){const state=grade<4?old.hydrate(raw,options):createState(grade);try{if(raw?.courseSettings){const p=courseProfile(grade,raw.courseSettings);state.courseSettings={textbook:p.textbook,phase:p.phase};}}catch{}return state;}

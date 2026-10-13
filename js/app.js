@@ -1,21 +1,21 @@
-import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261013-1';
-import {hintMarkup,handleHint} from './pedagogy.js?v=20261013-1';
-import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261013-1';
-import { getLevels, difficultyRange } from './curriculum.js?v=20261013-1';
-import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261013-1';
-import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261013-1';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261013-1';
-import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261013-1';
-import {columnMethod} from './column-method.js?v=20261013-1';
-import { t, locale } from './i18n.js?v=20261013-1';
-import { icon, emblem, magicArt } from './art.js?v=20261013-1';
-import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261013-1';
-import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261013-1';
-import { createEffects } from './effects.js?v=20261013-1';
-import { createSoundPlayer } from './sounds.js?v=20261013-1';
-import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261013-1';
-import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261013-1';
-import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261013-1';
+import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261013-2';
+import {hintMarkup,handleHint} from './pedagogy.js?v=20261013-2';
+import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261013-2';
+import { getLevels, difficultyRange } from './curriculum.js?v=20261013-2';
+import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261013-2';
+import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261013-2';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261013-2';
+import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261013-2';
+import {columnMethod} from './column-method.js?v=20261013-2';
+import { t, locale } from './i18n.js?v=20261013-2';
+import { icon, emblem, magicArt } from './art.js?v=20261013-2';
+import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261013-2';
+import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261013-2';
+import { createEffects } from './effects.js?v=20261013-2';
+import { createSoundPlayer } from './sounds.js?v=20261013-2';
+import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261013-2';
+import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261013-2';
+import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261013-2';
 
 const STORAGE_KEY = 'nuanweiwei.math-garden.v1';
 const PROFILE_KEY = 'nuanweiwei.math-garden.profiles.v3';
@@ -37,7 +37,7 @@ let state=profiles.grades[profiles.selectedGrade];
 let rewards=createRewards(profiles.grades);
 try {rewards=hydrateRewards(localStorage.getItem(REWARD_KEY),profiles.grades);}catch {storageIssue=t.saveError;}
 let miniController=null;
-const levels=()=>getLevels(state.grade||profiles.selectedGrade,view==='lesson'&&state.session&&!state.session.completed&&state.session.mode==='course-v1'?state.session.profile:state.courseSettings);
+const levels=()=>getLevels(state.grade||profiles.selectedGrade,view==='lesson'&&state.session&&!state.session.completed&&state.session.mode==='course-v1'?state.session.profile:{...state.courseSettings,difficulty:state.difficulty||'standard'});
 const activeCourse=()=>courseProfile(state.grade||1,{...state.courseSettings,difficulty:state.difficulty||'standard'});
 let view = 'home';
 let selectedLevel = 1;
@@ -174,7 +174,7 @@ const taskLabels = {
   1:'小光点，一共有几个？',2:'把花朵放在一起',3:'飞走一些，还剩多少？',4:'找到凑成十的伙伴',5:'一个十，再看几个一',6:'先搭一座通往十的桥',7:'经过十，再往回走',8:'找回藏起来的数字',9:'数数整十和个位',10:'跨过整十的小山丘'
 };
 function equation(q, solved=false) {
-  if(q.format==='course-v1')return `<div class="course-equation" aria-label="${safe(q.text)}">${safe(q.text)}${q.blank==='result'?` = ${solved?safe(q.choiceLabels[q.answer]):'?'}`:''}</div>`;
+  if(q.format==='course-v1')return `<div class="course-equation" aria-label="${safe(q.text)}">${safe(solved&&q.blank!=='result'?q.text.replace('?',q.choiceLabels[q.answer]):q.text)}${q.blank==='result'?` = ${solved?safe(q.choiceLabels[q.answer]):'?'}`:''}</div>`;
   if(q.kind==='chain') {
     const pieces=q.terms.map((n,i)=>`${i?`<span class="symbol">${q.ops[i-1]==='+'?'+':'−'}</span>`:''}<span>${n}</span>`).join('');
     const label=q.terms.map((n,i)=>`${i?(q.ops[i-1]==='+'?' 加 ':' 减 '):''}${n}`).join('');
@@ -205,7 +205,7 @@ function cardPuzzle(q,s,solved) {
   return `<section class="card-puzzle" aria-label="选 ${q.pickCount} 张卡凑出 ${q.target}"><div class="slot-sum" style="--slot-count:${q.pickCount}"><div class="slot-team" aria-label="${q.pickCount} 个数字卡位置">${slots}</div><span class="slot-operator" aria-label="${wrongSelection?'还不等于':'等于'}">${wrongSelection?'≠':'='}</span><strong class="slot-goal ${solved?'goal-lit':''}" data-digits="${String(q.target).length}" aria-label="目标数 ${q.target}">${q.target}</strong></div><div class="number-card-deck" role="group" aria-label="选择数字卡">${cardIndices(q).map((i,position)=>{const n=q.deck[i],chosen=Boolean(selected&(1<<i));return `<button class="number-card ${chosen?'selected':''}" data-action="card-select" data-card="${i}" data-digits="${String(n).length}" aria-label="第 ${position+1} 张数字卡 ${n}${chosen?'，已选择':''}" aria-pressed="${chosen}" ${solved||(!chosen&&ordered.length>=q.pickCount)?'disabled':''}><span>${n}</span></button>`;}).join('')}</div><p class="sr-only card-selection-note" aria-live="polite">已选 ${ordered.length} / ${q.pickCount} 张</p></section>`;
 }
 function answerMarkup(q,s,solved) {
-  if(q.format==='course-v1')return `${equation(q,solved)}<div class="answers course-answers" role="group" aria-label="选择答案">${q.choices.map(n=>`<button class="answer ${s.wrongChoices.includes(n)?'wrong':''} ${solved&&n===q.answer?'right chosen':''}" data-action="answer" data-value="${n}" aria-label="答案 ${safe(q.choiceLabels[n])}" ${solved||s.wrongChoices.includes(n)?'disabled':''}>${safe(q.choiceLabels[n])}${solved&&n===q.answer?icon('check'):''}</button>`).join('')}</div>`;
+  if(q.format==='course-v1')return `${q.story?`<p class="course-story">${safe(q.story)}</p>`:''}${equation(q,solved)}<div class="answers course-answers" role="group" aria-label="选择答案">${q.choices.map(n=>`<button class="answer ${s.wrongChoices.includes(n)?'wrong':''} ${solved&&n===q.answer?'right chosen':''}" data-action="answer" data-value="${n}" aria-label="答案 ${safe(q.choiceLabels[n])}" ${solved||s.wrongChoices.includes(n)?'disabled':''}>${safe(q.choiceLabels[n])}${solved&&n===q.answer?icon('check'):''}</button>`).join('')}</div>`;
   if(q.kind==='cards')return cardPuzzle(q,s,solved);
   return `${q.story?`<p class="story-question">${safe(q.story)}</p>`:equation(q,solved)}<div class="answers" role="group" aria-label="选择答案">${q.choices.map(n=>`<button data-digits="${String(n).length}" class="answer ${s.wrongChoices.includes(n)?'wrong':''} ${solved&&n===q.answer?'right chosen':''}" data-action="answer" data-value="${n}" aria-label="答案 ${n}${s.wrongChoices.includes(n)?'，再试一个':''}" ${solved||s.wrongChoices.includes(n)?'disabled':''}>${n}${solved&&n===q.answer?icon('check'):''}</button>`).join('')}</div>`;
 }
@@ -288,7 +288,7 @@ function rest() {
   return `<section class="rest-card">${icon('moon')}<h1>${t.restTitle}</h1><p>${t.restBody}<br>已经走过的路，会留在这里。</p>${hasPaused()?`<button class="primary" data-action="resume">${t.resume}${icon('arrow')}</button>`:''}<button class="${hasPaused()?'secondary':'primary'}" data-action="nav" data-view="home">回花园看看${icon('leaf')}</button></section>`;
 }
 function grownups() {
-  return `<div class="page-head"><p class="eyebrow">${icon('book')}给陪伴者的小手册</p><h1>让“想明白”，比“答得快”更重要。</h1><p>可以一起看、一起摆，也可以让孩子按自己的节奏探索。</p></div><div class="guide-grid"><section class="guide-panel"><h2>一个有余地的小花园</h2><p>课程按2026年10月13日核对的官方公开目录配置。部分下册处于新旧衔接，采用当前已正式公布的下册；仅“认识小数”而未核实计算范围的章节暂不加入小数计算。<a href="./curriculum-sources.json" target="_blank" rel="noopener">查看24册课程依据</a>。</p><p>首页可选择1—4年级，每个年级10站，卡片和累计记录独立。小设置中选择教材、四档学习进度及轻松／标准／挑战。进度从上册前半到下册全册，包含前面已经学过的内容；具体计算范围随教材改变。设置只影响下一趟。</p><p>一趟6题，以当前重点为主，穿插已学基础和最多1题间隔复习。没有旧记录时，这题是当前知识的迁移。每一题先自己试试，需要时主动打开小工具。</p><p>答错或借助工具后，仍然能收集魔法卡。用手指、纸笔、积木帮忙也很好；屏幕只能知道是否点击提示，无法知道孩子实际用了什么办法。</p><p>数学答题没有倒计时，每趟结束可以歇一歇；没有排行榜、广告、签到或付费内容。8 张主线卡已经能看见完整的组合魔法。10 张全齐额外打开星光百宝箱，观看暖尾尾的庆祝舞和三种秘密魔法。不需要追求所有题独立完成，也不消耗卡片。每档首次集齐 10 张卡，还会获得一次 60 秒的接星光小游戏；以后完成 3 个不同数学地点，可以再获得一次。次数不累积，刷新和切到后台不会延长时间，提前退出也不返还。</p></section><section class="guide-panel"><h2>这些记录说明什么？</h2><p><b>一起练过：</b>接触过这个办法。<br><b>能独立试试：</b>某一趟的 5 道目标题中，至少 4 题无提示首答正确。<br><b>隔一会也会：</b>之后另一趟，至少隔 3 题，用不同的题再次无提示首答正确。</p><p>这些只是轻量的游戏内练习信号。选择题也可能猜中，6 题不能证明真实掌握，更不代表学习诊断或成绩。鼓励孩子用自己的话或实物解释，再在别的时间试试。</p><p>遇到需要帮助的知识会进入后续复习，每趟最多 1 题。间隔按做过的题和旅程计算，不要求连续几天来玩。</p></section></div>
+  return `<div class="page-head"><p class="eyebrow">${icon('book')}给陪伴者的小手册</p><h1>让“想明白”，比“答得快”更重要。</h1><p>可以一起看、一起摆，也可以让孩子按自己的节奏探索。</p></div><div class="guide-grid"><section class="guide-panel"><h2>一个有余地的小花园</h2><p>课程按2026年10月13日核对的官方公开目录配置。部分下册处于新旧衔接，采用当前已正式公布的下册；仅“认识小数”而未核实计算范围的章节暂不加入小数计算。<a href="./curriculum-sources.json" target="_blank" rel="noopener">查看24册课程依据</a>。</p><p>首页可选择1—4年级，每个年级10站，卡片和累计记录独立。小设置中选择教材、四档学习进度及轻松／标准／挑战。进度从上册前半到下册全册，包含前面已经学过的内容；具体计算范围随教材改变。设置只影响下一趟。</p><p>同一难度内，十关也会逐步增加数值、进退位、缺项和应用要求；轻松后段也会练已学的更大数，不会始终停在5以内。学习进度限定课程上限，当前只学到5以内时不会加入新数。每趟先热身，再主练，中途最多1题间隔复习，最后综合练习。没有旧记录时，这题是当前知识的迁移。每一题先自己试试，需要时主动打开小工具。</p><p>答错或借助工具后，仍然能收集魔法卡。用手指、纸笔、积木帮忙也很好；屏幕只能知道是否点击提示，无法知道孩子实际用了什么办法。</p><p>数学答题没有倒计时，每趟结束可以歇一歇；没有排行榜、广告、签到或付费内容。8 张主线卡已经能看见完整的组合魔法。10 张全齐额外打开星光百宝箱，观看暖尾尾的庆祝舞和三种秘密魔法。不需要追求所有题独立完成，也不消耗卡片。每档首次集齐 10 张卡，还会获得一次 60 秒的接星光小游戏；以后完成 3 个不同数学地点，可以再获得一次。次数不累积，刷新和切到后台不会延长时间，提前退出也不返还。</p></section><section class="guide-panel"><h2>这些记录说明什么？</h2><p><b>一起练过：</b>接触过这个办法。<br><b>能独立试试：</b>某一趟的 5 道目标题中，至少 4 题无提示首答正确。<br><b>隔一会也会：</b>之后另一趟，至少隔 3 题，用不同的题再次无提示首答正确。</p><p>这些只是轻量的游戏内练习信号。选择题也可能猜中，6 题不能证明真实掌握，更不代表学习诊断或成绩。鼓励孩子用自己的话或实物解释，再在别的时间试试。</p><p>遇到需要帮助的知识会进入后续复习，每趟最多 1 题。间隔按做过的题和旅程计算，不要求连续几天来玩。</p></section></div>
   <section class="guide-panel"><h2>${state.grade||1} 年级 · 探索记录</h2><table class="skill-table"><thead><tr><th scope="col">地点</th><th scope="col">独立 / 一起完成</th><th scope="col">练习信号</th></tr></thead><tbody>${levels().map(l=>`<tr><td>${String(l.id).padStart(2,'0')} ${l.title}${l.optional?' · 自选':''}</td><td>${state.stages[l.id]?.independent||0} / ${state.stages[l.id]?.supported||0}</td><td class="status-label">${t.status[stageStatus(state,l.id)]}</td></tr>`).join('')}</tbody></table></section>
   <div class="guide-grid" style="margin-top:23px"><section class="guide-panel"><h2>只留在这里的小脚印</h2><p>无需账号，不输入孩子姓名或其他个人信息。没有外部统计或追踪。题目、插画和字体由游戏网站提供，音效在设备上合成。托管服务 GitHub Pages 会为安全目的记录访问者 IP。</p><p>进度只保存在<b>当前设备、当前浏览器、当前网址</b>里。电脑、手机、iPad 上界面都会适配，但<b>进度不会自动同步</b>。清除浏览器网站数据、隐私浏览结束或更换端口可能失去进度。</p><p>公开网址可直接分享给家长，无需电脑保持开机。没有自动跨设备同步。</p></section><section class="guide-panel"><h2>舒适地玩</h2><p>保留当前设备的声音开关，新设备默认关闭。开启声音后，旅程中会播放轻柔的花园背景音乐。答对有星光短音，过关有庆祝乐句，施法和百宝箱有不同配乐。首次点击开启或进入游戏会启动手机音频；关掉后立即停止。请同时使用设备系统音量；浏览器无法可靠识别 iPad/iPhone 的硬件静音拨片。</p><div class="setting-row"><label for="guide-motion">画面动态</label>${motionSelect('guide-motion')}</div><p>减少动态会直接展示每种魔法的完整画面，奖励内容一样多。</p><p>中文为首个语言版本；代码预留语言字典。真实儿童试玩、实际 iPad/手机和声音听感尚未验证。</p></section></div><section class="reset-panel"><div><h3>重新开始一个花园</h3><p>会清除本游戏在这个浏览器里所有年级的卡片、练习记录和小游戏机会。不会影响其他网站。</p></div><button class="secondary danger" data-action="reset-dialog">${icon('reset')}重置本地进度</button></section>`;
 }
@@ -320,7 +320,7 @@ function modalView() {
   let content='';
   if(modal==='hint'){const q=currentQuestion(state);if(!q)return '';content=`<h2 id="dialog-title">一起想一想</h2>${hintMarkup(state.session,q)}<div class="modal-actions"><button class="primary" data-action="close-dialog">回到题目${icon('arrow')}</button></div>`;}
   if(modal==='settings')content=`<h2 id="dialog-title">小设置</h2>${difficultyControl()}<details class="extra-settings"><summary>声音与动画</summary><div class="setting-row"><span class="modal-label">声音</span><button class="secondary" data-action="sound" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}${state.settings.sound?'开启':'关闭'}</button></div><div class="setting-row"><label class="modal-label" for="modal-motion">动画</label>${motionSelect('modal-motion')}</div><div class="settings-links"><button class="text-button" data-action="fullscreen">${icon('frame')}切换全屏</button><button class="text-button" data-action="app-help">${icon('leaf')}添加主屏幕</button><button class="text-button" data-action="nav" data-view="grownups">${icon('book')}给大人看</button></div><p class="audio-status" role="status">${safe(audioMessage())}</p></details><div class="modal-actions"><button class="primary" data-action="close-dialog">好了${icon('check')}</button></div>`;
-  if(modal==='question-cycle')content=`<h2 id="dialog-title">这一轮已经练过啦</h2><p>这个难度下的新题已用完。开启新一轮后，题目可以再次出现；卡片和记录都会保留。</p><div class="modal-actions"><button class="primary" data-action="question-cycle">开始新一轮</button><button class="secondary" data-action="close-dialog">先不开始</button></div>`;
+  if(modal==='question-cycle')content=`<h2 id="dialog-title">这一轮已经练过啦</h2><p>这段练习的新题已经练过啦。开启新一轮后，题目可以再次出现；卡片和记录都会保留。</p><div class="modal-actions"><button class="primary" data-action="question-cycle">开始新一轮</button><button class="secondary" data-action="close-dialog">先不开始</button></div>`;
   if(modal==='app-help')content=`<h2 id="dialog-title">把花园放到主屏幕</h2><p>${safe(getInstallHint())}</p><p>从主屏幕图标进入可获得更沉浸的界面，效果由浏览器决定。公网版本不需要电脑开机或连接同一 Wi-Fi。浏览器支持时可以直接全屏；iPhone Safari 如不能直接全屏，请从主屏幕图标打开。进度保存在当前网址与浏览器，主屏幕入口的存档可能与 Safari 标签页分开。</p><div class="modal-actions"><button class="primary" data-action="close-dialog">知道啦</button></div>`;
   if(modal==='replace-session')content=`<h2 id="dialog-title">还有一趟没走完呢。</h2><p>「${level(state.session.levelId).title}」停在第 ${state.session.index+1} 个小任务。可以接着走，也可以开始新地点并换一组随机题。已经收藏的卡片都会保留。</p><div class="modal-actions"><button class="primary" data-action="resume">接着上次玩${icon('arrow')}</button><button class="secondary" data-action="begin-confirm" data-level="${selectedLevel}">开始「${level(selectedLevel).title}」</button><button class="text-button" data-action="close-dialog">先不换</button></div>`;
   if(modal==='reset')content=`<h2 id="dialog-title">要重新种下花园吗？</h2><p>这会删除这个浏览器里所有年级的卡片、练习记录和小游戏机会，无法撤销。</p><div class="modal-actions"><button class="primary" data-action="close-dialog">保留我的花园</button><button class="secondary danger" data-action="reset-confirm">确认重置本地进度</button></div>`;
