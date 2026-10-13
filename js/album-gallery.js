@@ -1,4 +1,4 @@
-import { icon } from './art.js';
+import { icon } from './art.js?v=20261013-1';
 
 // Trusted local artwork only. Gallery identifiers cannot become paths or URLs.
 export const ALBUM_COVERS = Object.freeze([

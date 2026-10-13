@@ -1,13 +1,13 @@
-import {createState, hydrate} from './engine.js?v=20261012-4';
+import {createState, hydrate} from './engine.js?v=20261013-1';
 
-export const GRADES = Object.freeze([1, 2, 3]);
+export const GRADES = Object.freeze([1, 2, 3, 4]);
 const validGrade = value => GRADES.includes(value);
 const prefs = value => ({sound: value?.sound === true, motion: ['system','reduce','full'].includes(value?.motion) ? value.motion : 'system'});
 
 export function createProfiles(legacyRaw = null) {
-  const first = hydrate(legacyRaw, {grade: 1});
+  const first = hydrate(legacyRaw, {grade: 1, preserveQuestions:true});
   const profiles = {version: 2, selectedGrade: 1, settings: prefs(first.settings),
-    grades: {1: first, 2: createState(2), 3: createState(3)}};
+    grades: {1: first, 2: createState(2), 3: createState(3), 4:createState(4)}};
   syncSettings(profiles, profiles.settings);
   return profiles;
 }
@@ -18,10 +18,10 @@ export function hydrateProfiles(raw, legacyRaw = null) {
   try {
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (!parsed || parsed.version !== 2 || !parsed.grades
-      || (typeof raw === 'string' && raw.length > 800_000)) return fallback;
+      || (typeof raw === 'string' && raw.length > 4_000_000)) return fallback;
     const profiles = {version: 2, selectedGrade: validGrade(parsed.selectedGrade) ? parsed.selectedGrade : 1,
       settings: prefs(parsed.settings), grades: {}};
-    for (const grade of GRADES) profiles.grades[grade] = hydrate(parsed.grades[grade], {grade});
+    for (const grade of GRADES) profiles.grades[grade] = hydrate(parsed.grades[grade], {grade,preserveQuestions:true});
     // A still-open older tab may have written valid first-grade progress.
     const old = fallback.grades[1], first = profiles.grades[1];
     const keepsCards = first.cards.every(id=>old.cards.includes(id));
@@ -30,9 +30,9 @@ export function hydrateProfiles(raw, legacyRaw = null) {
       && (old.stages[id]?.independent||0)>=s.independent
       && (old.stages[id]?.supported||0)>=s.supported);
     const later = old.completedQuestions>first.completedQuestions || old.cards.length>first.cards.length || old.rounds>first.rounds;
-    if(later&&keepsCards&&keepsStages&&old.completedQuestions>=first.completedQuestions) profiles.grades[1]=old;
+    if(!first.courseVersion&&later&&keepsCards&&keepsStages&&old.completedQuestions>=first.completedQuestions) profiles.grades[1]=old;
     else if(later) profiles.retainedLegacy=old;
-    else if(parsed.retainedLegacy) profiles.retainedLegacy=hydrate(parsed.retainedLegacy,{grade:1});
+    else if(parsed.retainedLegacy) profiles.retainedLegacy=hydrate(parsed.retainedLegacy,{grade:1,preserveQuestions:true});
     syncSettings(profiles, profiles.settings);
     return profiles;
   } catch { return fallback; }
