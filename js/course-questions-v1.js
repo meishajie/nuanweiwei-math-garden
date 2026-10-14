@@ -1,5 +1,5 @@
-import {courseProfile,availableTopics,bankTopics,TOPICS} from './course-catalog.js?v=20261014-1';
-import {number,decimal,operation,calculate,expressionText,expressionSteps,expressionSignature,formatValue,valuesEqual,symbol} from './course-math.js?v=20261014-1';
+import {courseProfile,availableTopics,bankTopics,TOPICS} from './course-catalog.js?v=20261014-2';
+import {number,decimal,operation,calculate,expressionText,expressionSteps,expressionSignature,formatValue,valuesEqual,symbol} from './course-math.js?v=20261014-2';
 const cache=new Map();
 function random(seed){let x=(Math.imul(seed+41,2654435761)>>>0)||1;return (min,max)=>{x^=x<<13;x^=x>>>17;x^=x<<5;return min+((x>>>0)%(max-min+1));};}
 export function makeCourseQuestion(profile,levelId,topicId,serial) {

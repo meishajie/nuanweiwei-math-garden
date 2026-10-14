@@ -1,7 +1,7 @@
-import {icon,emblem} from './art.js?v=20261014-1';
-import {companionMarkup} from './character-reactions.js?v=20261014-1';
-import {guardianBadgeMarkup,TREASURE_THEMES} from './adventure.js?v=20261014-1';
-import {galleryMarkup} from './album-gallery.js?v=20261014-1';
+import {icon,emblem} from './art.js?v=20261014-2';
+import {companionMarkup} from './character-reactions.js?v=20261014-2';
+import {guardianBadgeMarkup,TREASURE_THEMES} from './adventure.js?v=20261014-2';
+import {galleryMarkup} from './album-gallery.js?v=20261014-2';
 
 export const CONGRATS_MS=5500,OPENING_MS=1500,DANCE_MS=30000;
 export const celebrationActive=s=>['congrats','opening','dance'].includes(s.phase);

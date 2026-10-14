@@ -1,4 +1,4 @@
-import {createState, hydrate} from './engine.js?v=20261014-1';
+import {createState, hydrate} from './engine.js?v=20261014-2';
 
 export const GRADES = Object.freeze([1, 2, 3, 4]);
 const validGrade = value => GRADES.includes(value);
@@ -6,6 +6,8 @@ const prefs = value => ({sound: value?.sound === true, motion: ['system','reduce
 
 export function createProfiles(legacyRaw = null) {
   const first = hydrate(legacyRaw, {grade: 1, preserveQuestions:true});
+  // Apply the new starting point only to a fresh garden, never to a restored save.
+  if (!legacyRaw) first.courseSettings = {textbook:'bnu',phase:2};
   const profiles = {version: 2, selectedGrade: 1, settings: prefs(first.settings),
     grades: {1: first, 2: createState(2), 3: createState(3), 4:createState(4)}};
   syncSettings(profiles, profiles.settings);

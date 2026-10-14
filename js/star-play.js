@@ -1,5 +1,5 @@
-import { icon, emblem } from './art.js?v=20261014-1';
-import { PLAY_DURATION_MS } from './play-rewards.js?v=20261014-1';
+import { icon, emblem } from './art.js?v=20261014-2';
+import { PLAY_DURATION_MS } from './play-rewards.js?v=20261014-2';
 
 const safeCount = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
 const sourceCharacter = './assets/nuanweiwei-happy-safari.png';

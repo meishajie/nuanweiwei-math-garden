@@ -1,7 +1,7 @@
-import * as v1 from './course-questions-v1.js?v=20261014-1';
-import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261014-1';
-import {decimal,number,operation,formatValue,expressionText,expressionSignature,calculate,valuesEqual} from './course-math.js?v=20261014-1';
-export {makeCourseQuestion} from './course-questions-v1.js?v=20261014-1';
+import * as v1 from './course-questions-v1.js?v=20261014-2';
+import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261014-2';
+import {decimal,number,operation,formatValue,expressionText,expressionSignature,calculate,valuesEqual} from './course-math.js?v=20261014-2';
+export {makeCourseQuestion} from './course-questions-v1.js?v=20261014-2';
 const cache=new Map(),templates=new Map(),scopeCache=new Map(),forms=['plain','right','left','story'];
 function sourceQuestion(p,topic,serial){
  const t=TOPICS[topic],modes=p.difficulty==='easy'?['easy']:p.difficulty==='standard'?['easy','standard']:['easy','standard','challenge'];let mode=modes[(serial%7)%modes.length];

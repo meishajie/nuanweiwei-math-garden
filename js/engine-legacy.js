@@ -1,5 +1,5 @@
-import {answerTotals} from './round-summary.js?v=20261014-1';
-import { LEVELS, QUESTIONS, LEGACY_GENERATED_QUESTIONS, GRADE_QUESTIONS, getLevels, DIFFICULTIES, DIFFICULTY_QUESTIONS, getDifficultyBank } from './curriculum-legacy.js?v=20261014-1';
+import {answerTotals} from './round-summary.js?v=20261014-2';
+import { LEVELS, QUESTIONS, LEGACY_GENERATED_QUESTIONS, GRADE_QUESTIONS, getLevels, DIFFICULTIES, DIFFICULTY_QUESTIONS, getDifficultyBank } from './curriculum-legacy.js?v=20261014-2';
 
 // No browser APIs, dates or storage. Random sampling is injected at session start.
 const VERSION = 1;
