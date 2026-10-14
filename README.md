@@ -2,7 +2,7 @@
 
 [在线游戏](https://meishajie.github.io/nuanweiwei-math-garden/)
 
-2026-10-14基础访问统计：Umami与Google Analytics（GA4）默认记录基础访问；更多设置中可关闭Google统计，此前明确关闭的选择继续有效。GA4仅使用本游戏前缀和路径的1天第一方统计Cookie；广告、Google信号和增强型衡量关闭，不读取题目、答案或存档，不上报网址查询参数或来源页。游戏与奖励不受统计开关影响，已有设置和进度保留，详情见[隐私说明](PRIVACY.md)。
+基础访问统计由Umami与Google Analytics（GA4）提供。GA4使用本游戏前缀和路径的1天第一方统计Cookie；广告、Google信号和增强型衡量关闭，不读取题目、答案或存档，不上报网址查询参数或来源页。旧的明确关闭选择和浏览器不跟踪设置继续有效，详情见[隐私说明](PRIVACY.md)。
 
 [教材版本说明](https://meishajie.github.io/nuanweiwei-math-garden/curriculum.html)按四个年级整理24册版本摘要与采用范围。因普通浏览器访问教材资源出现403、官方正文需要登录，已移除游戏内教材、目录和版权页外链。给大人看页保留与当前出题配置一致的年级、上下册及三版教材计算范围表。
 
