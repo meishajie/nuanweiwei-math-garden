@@ -1,5 +1,5 @@
-import {createState} from './engine.js?v=20261014-4';
-import {createProfiles,GRADES,syncSettings} from './profiles.js?v=20261014-4';
+import {createState} from './engine.js?v=20261014-6';
+import {createProfiles,GRADES,syncSettings} from './profiles.js?v=20261014-6';
 import {createRewards} from './play-rewards.js?v=20261014-4';
 import {courseProfile} from './course-catalog.js?v=20261014-4';
 

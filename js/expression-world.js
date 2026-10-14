@@ -1,4 +1,4 @@
-import {ALBUM_COVERS,getAlbum} from './album-gallery.js?v=20261014-4';
+import {ALBUM_COVERS,getAlbum} from './album-gallery.js?v=20261014-6';
 import {icon} from './art.js?v=20261014-4';
 
 export const WORLD_SLIDE_MS=1500;
@@ -45,7 +45,7 @@ export function worldMarkup(s,{paused=false,reduced=false}={}){
    <div class="world-sky" aria-hidden="true"><i></i><i></i><i></i></div><div class="world-orbit" aria-hidden="true"></div>
    ${glimpse(previous,'left')}${glimpse(next||WORLD_TOUR[0],'right')}
    <button class="world-picture ${album.nativeOnly?'world-picture-native':''}" data-world-card="${album.id}" data-action="album-open" data-album="${album.id}" aria-label="暂停播放，仔细看${escape(album.title)}" style="--picture-native:${album.width}px">
-    <img class="world-full-image" data-world-full="${album.id}" src="${album.full}" alt="${escape(album.title)}的完整封面" width="${album.width}" height="${album.height}" decoding="async" fetchpriority="high">
+    <img class="world-full-image" data-world-full="${album.id}" src="${album.full}" alt="${escape(album.title)}的表情代表图" width="${album.width}" height="${album.height}" decoding="async" fetchpriority="high">
     <span class="world-picture-look">${icon('frame')}点图，慢慢看</span>
    </button>
    <div class="world-loading" role="status">${s.failed?'这张图还没来，试试下一张吧。':'星光正在送来大图……'}</div>

@@ -1,20 +1,21 @@
-import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-4';
-import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-4';
-import {restartProgress,persistRestart} from './restart.js?v=20261014-4';
+import {coverMarkup,preparationMarkup,mapMarkup} from './entry.js?v=20261014-6';
+import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-6';
+import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-6';
+import {restartProgress,persistRestart} from './restart.js?v=20261014-6';
 import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261014-4';
-import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-4';
-import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-4';
+import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-6';
+import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-6';
 import { getLevels, difficultyRange } from './curriculum.js?v=20261014-4';
 import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261014-4';
 import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261014-4';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261014-4';
-import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-4';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261014-6';
+import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-6';
 import {columnMethod} from './column-method.js?v=20261014-4';
 import { t, locale } from './i18n.js?v=20261014-4';
 import { icon, emblem, magicArt } from './art.js?v=20261014-5';
 import { feedbackButtonMarkup, feedbackDialogMarkup } from './feedback.js?v=20261014-5';
 import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261014-4';
-import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-4';
+import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-6';
 import { createEffects } from './effects.js?v=20261014-4';
 import { createSoundPlayer } from './sounds.js?v=20261014-4';
 import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261014-4';
@@ -43,7 +44,8 @@ try {rewards=hydrateRewards(localStorage.getItem(REWARD_KEY),profiles.grades);}c
 let miniController=null;
 const levels=()=>getLevels(state.grade||profiles.selectedGrade,view==='lesson'&&state.session&&!state.session.completed&&state.session.mode==='course-v1'?state.session.profile:{...state.courseSettings,difficulty:state.difficulty||'standard'});
 const activeCourse=()=>courseProfile(state.grade||1,{...state.courseSettings,difficulty:state.difficulty||'standard'});
-let view = 'home';
+let view = 'cover';
+let preparationBack='cover';
 let selectedLevel = 1;
 let hintMode = '';
 let hintClosed = false;
@@ -71,7 +73,7 @@ const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const reduceMotion = () => state.settings.motion === 'reduce' || (state.settings.motion === 'system' && systemMotion.matches);
 const level = id => levels().find(item => item.id === Number(id)) || levels()[0];
 const hasFinale = () => levels().filter(l => !l.optional).every(l => state.cards.includes(l.id));
-const suggested = () => levels().find(l => !l.optional && !state.cards.includes(l.id))?.id || levels().find(l => !l.optional && state.stages[l.id]?.needReview)?.id || 1;
+const suggested = () => levels().find(l => !l.optional && !state.cards.includes(l.id))?.id || levels().find(l => !l.optional && state.stages[l.id]?.needReview)?.id || levels().find(l=>!state.cards.includes(l.id))?.id || 1;
 const hasPaused = () => state.session && !state.session.completed;
 const hasTreasure = () => levels().every(l => state.cards.includes(l.id));
 const effectsCanvas = document.createElement('canvas');
@@ -154,11 +156,11 @@ function notify(message) {
 }
 
 function header() {
-  if(view==='lesson')return '';
+  if(['lesson','setup'].includes(view))return '';
   const current = ['intro','lesson','reward','rest'].includes(view) ? 'home' : ['magic','treasure'].includes(view) ? 'vault' : view;
-  return `<header class="site-header"><button class="brand" data-action="nav" data-view="home" aria-label="暖尾尾的数字魔法花园，回到首页"><span class="brand-mark">${icon('leaf')}</span><span class="brand-name">${t.shortTitle}<span class="brand-note">NUANWEIWEI’S LITTLE GARDEN</span></span></button>
+  return `<header class="site-header"><button class="brand" data-action="nav" data-view="cover" aria-label="暖尾尾的数字魔法花园，回到封面"><span class="brand-mark">${icon('leaf')}</span><span class="brand-name">${t.shortTitle}<span class="brand-note">NUANWEIWEI’S LITTLE GARDEN</span></span></button>
   <nav class="main-nav" aria-label="主要导航">${[['home','map'],['vault','chest'],['grownups','book']].map(([name,symbol])=>`<button data-action="nav" data-view="${name}" ${current===name?'aria-current="page" class="active"':''}>${icon(symbol)}${t.nav[name]}${name==='vault'&&state.cards.length?` <span class="sr-only">已有 ${state.cards.length} 张</span>`:''}</button>`).join('')}</nav>
-  <div class="header-tools"><button class="tool-button fullscreen-tool" data-action="fullscreen" aria-label="切换全屏">${icon('frame')}</button><button class="tool-button wide music-toggle" data-action="sound" aria-label="${state.settings.sound?t.soundOn+'，点击关闭':t.soundOff+'，点击开启'}" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}<span>${state.settings.sound?'音乐开':'音乐关'}</span></button><button class="tool-button" data-action="settings" aria-label="${t.settings}">${icon('settings')}</button></div></header>`;
+  <div class="header-tools">${view!=='cover'&&view!=='home'?`<button class="tool-button" data-action="nav" data-view="home" aria-label="关卡地图">${icon('map')}</button>`:''}<button class="tool-button fullscreen-tool" data-action="fullscreen" aria-label="切换全屏">${icon('frame')}</button><button class="tool-button wide music-toggle" data-action="sound" aria-label="${state.settings.sound?t.soundOn+'，点击关闭':t.soundOff+'，点击开启'}" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}<span>${state.settings.sound?'音乐开':'音乐关'}</span></button><button class="tool-button" data-action="settings" aria-label="${t.settings}">${icon('settings')}</button></div></header>`;
 }
 function footer() {
   return `<footer class="footer"><span>${icon('leaf')}暖尾尾陪你慢慢想 · 不比较，不赶时间</span><button data-action="nav" data-view="grownups">${t.saved} ${icon('arrow')}</button></footer>`;
@@ -167,10 +169,10 @@ function cardButton(l, bonus=false) {
   const status = stageStatus(state,l.id); const owned = state.cards.includes(l.id); const rec = suggested()===l.id;
   return `<button class="level-card ${rec&&!bonus?'recommended':''}" style="--card-bg:${l.color}44" data-action="intro" data-level="${l.id}" aria-label="第 ${l.id} 站 ${l.title}，${l.skill}，${t.status[status]}${l.optional?'，自选挑战':''}"><div class="level-top"><span class="level-number">${String(l.id).padStart(2,'0')}</span>${!bonus?(owned?`<span class="mini-check">${icon('check')}</span>`:rec?'<span class="rec-label">从这里开始</span>':''):''}</div>${emblem(l.id)}<h3>${l.title}</h3><p class="level-mission">${safe(MISSIONS[l.id].goal)}</p><div class="level-bottom"><span>${owned?'已一起修复':l.range}</span>${icon('arrow')}</div></button>`;
 }
-function home() {
-  const next=rewards.unlockedGrades.length&&!rewards.ticket?practiceStage():suggested();
-  return `<section class="home-stage ${rewards.unlockedGrades.length?'has-play-reward':''}"><div class="home-welcome"><img src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾邀请你冒险" width="318" height="240"><div><h1>一起点亮花园</h1><p>魔法卡 ${state.cards.length} / 10</p><div class="home-shortcuts"><button class="difficulty-shortcut" data-action="settings">${difficultyLabel()}练习 ${icon('settings')}</button>${feedbackButtonMarkup({compact:true})}</div></div></div><div class="grade-picker" role="group" aria-label="选择练习年级">${[1,2,3,4].map(grade=>`<button class="grade-choice" data-action="grade" data-grade="${grade}" aria-pressed="${profiles.selectedGrade===grade}"><b>${grade}</b><span>年级</span></button>`).join('')}</div><div class="home-actions"><button class="primary" data-action="${hasPaused()?'resume':'intro'}" ${hasPaused()?'':`data-level="${next}"`}>${hasPaused()?'接着玩':rewards.unlockedGrades.length?'新探险':'开始冒险'}${icon('arrow')}</button><button class="secondary" data-action="nav" data-view="vault" aria-label="魔法宝藏，已有 ${state.cards.length} 张卡">${icon('chest')}魔法宝藏</button></div>${miniShortcut()}<section class="compact-map" id="garden-map" aria-label="选择花园关卡">${levels().map(l=>`<button class="focus-level ${state.cards.includes(l.id)?'level-lit':''}" data-action="intro" data-level="${l.id}" aria-label="第 ${l.id} 站 ${l.title}${l.optional?'，自选挑战':''}${state.cards.includes(l.id)?'，已点亮':''}"><span class="focus-level-number">${String(l.id).padStart(2,'0')}</span>${emblem(l.id)}<span class="focus-level-copy"><strong>${l.title}</strong><small>${state.cards.includes(l.id)?'已点亮':l.optional?'自选挑战':l.range}</small></span></button>`).join('')}</section></section>`;
-}
+function cover(){return coverMarkup({paused:hasPaused(),grade:state.grade||1,cards:state.cards.length});}
+function prepare(){return preparationMarkup({grade:state.grade||1,controls:difficultyControl(),paused:hasPaused(),cards:state.cards.length,level:suggested(),back:preparationBack});}
+function home(){return mapMarkup({grade:state.grade||1,levels:levels(),cards:state.cards,paused:hasPaused(),next:suggested(),summary:`${TEXTBOOKS.find(t=>t.id===activeCourse().textbook).label} · ${PHASES[activeCourse().phase-1]} · ${difficultyLabel()}`,mini:miniShortcut()});}
+
 function spellCard(l, interactive=true) {
   const owned = state.cards.includes(l.id);
   const tag = interactive&&owned?'button':'article';
@@ -267,7 +269,7 @@ function lesson() {
   const helper=solved?'看看方法':s.feedback?'要帮忙吗？':'帮我想想';
   const primary=solved&&s.index===s.questions.length-1?'<span class="completion-pending" role="status">点亮花园……</span>':solved?`<button class="primary" data-action="next">${s.index===5?'收下魔法卡':'下一题'}${icon(s.index===5?'chest':'arrow')}</button>`:q.kind==='cards'?`<button class="primary card-submit" data-action="card-submit" ${selectedCardCount(cardSelection)!==q.pickCount?'disabled':''}>确定${icon('check')}</button>`:'';
   const companion=`<div class="question-companion">${companionMarkup({mode:solved?'correct':s.feedback?'retry':'idle',kind:'lesson',motion:reduceMotion()?'reduce':'full'})}</div>`;
-  return `<div class="lesson-head"><button class="focus-tool" data-action="pause" aria-label="休息一下">${icon('back')}</button><div class="lesson-progress"><img class="lesson-avatar" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾和你一起玩" width="318" height="240"><span class="lesson-place">${l.title}</span><span class="companion-energy-target" role="progressbar" aria-label="送给暖尾尾的星光" aria-valuemin="0" aria-valuemax="6" aria-valuenow="${earned}">${icon('spark')}<b>${earned} / 6</b></span></div><div class="lesson-tools"><button class="focus-tool music-toggle" data-action="sound" aria-label="${state.settings.sound?'关闭声音':'打开声音'}" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}<span>${state.settings.sound?'音乐开':'音乐关'}</span></button><button class="focus-tool" data-action="settings" aria-label="小设置">${icon('settings')}</button></div></div><section class="problem-card ${q.kind==='cards'?'has-card-puzzle':q.format==='course-v1'?'has-course':''} ${solved?'is-correct':s.feedback?'is-retry':''}" aria-labelledby="problem-title"><h1 class="sr-only" id="problem-title">${questionTitle(q)}</h1><div class="problem-content">${companion}${answerMarkup(q,s,solved)}</div><footer class="lesson-actions"><div class="feedback ${solved?'correct':s.feedback?'retry':''}" role="status" aria-live="polite" tabindex="-1">${solved?`${icon('check')}答对啦！`:s.feedback?`${icon('reset')}${q.kind==='cards'?'换一张，再试试':'再想想，再试试'}`:''}</div><div class="lesson-action-buttons"><button class="${primary?'secondary':'text-button'}" data-action="help" aria-expanded="${modal==='hint'}" aria-controls="hint-dialog">${icon('frame')}${helper}</button>${primary}</div></footer></section>`;
+  return `<div class="lesson-head"><button class="focus-tool" data-action="pause" aria-label="休息一下">${icon('back')}</button><div class="lesson-progress"><img class="lesson-avatar" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾和你一起玩" width="318" height="240"><button class="lesson-place lesson-map-link" data-action="map" aria-label="关卡地图，第 ${l.id} / 10 关，第 ${s.index+1} / ${s.questions.length} 题">第 ${l.id} / 10 关<span class="stage-name"> · ${l.title}</span><small>第 ${s.index+1} / ${s.questions.length} 题</small></button><span class="companion-energy-target" role="progressbar" aria-label="送给暖尾尾的星光" aria-valuemin="0" aria-valuemax="6" aria-valuenow="${earned}">${icon('spark')}<b>${earned} / 6</b></span></div><div class="lesson-tools"><button class="focus-tool music-toggle" data-action="sound" aria-label="${state.settings.sound?'关闭声音':'打开声音'}" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}<span>${state.settings.sound?'音乐开':'音乐关'}</span></button><button class="focus-tool" data-action="settings" aria-label="小设置">${icon('settings')}</button></div></div><section class="problem-card ${q.kind==='cards'?'has-card-puzzle':q.format==='course-v1'?'has-course':''} ${solved?'is-correct':s.feedback?'is-retry':''}" aria-labelledby="problem-title"><h1 class="sr-only" id="problem-title">${questionTitle(q)}</h1><div class="problem-content">${companion}${answerMarkup(q,s,solved)}</div><footer class="lesson-actions"><div class="feedback ${solved?'correct':s.feedback?'retry':''}" role="status" aria-live="polite" tabindex="-1">${solved?`${icon('check')}答对啦！`:s.feedback?`${icon('reset')}${q.kind==='cards'?'换一张，再试试':'再想想，再试试'}`:''}</div><div class="lesson-action-buttons"><button class="${primary?'secondary':'text-button'}" data-action="help" aria-expanded="${modal==='hint'}" aria-controls="hint-dialog">${icon('frame')}${helper}</button>${primary}</div></footer></section>`;
 }
 function reward() { return magicPage(); }
 function finishRound() {
@@ -290,7 +292,7 @@ function correctAnswerFeedback(origin) {
 function difficultyLabel() {return {easy:'轻松',standard:'标准',challenge:'挑战'}[state.difficulty||'standard'];}
 function difficultyControl() {
  const p=activeCourse();
- return `<div class="course-settings"><section><h3>教材</h3><div class="course-segments" role="group" aria-label="教材版本">${TEXTBOOKS.map(t=>`<button data-action="textbook" data-value="${t.id}" aria-pressed="${p.textbook===t.id}">${t.label}</button>`).join('')}</div></section><section><h3>学习进度</h3><div class="phase-track"><div class="phase-head"><span>上册</span><span>下册</span></div><input class="phase-slider" id="course-phase" type="range" min="1" max="4" step="1" value="${p.phase}" data-setting="phase" aria-label="学习进度" aria-valuetext="${PHASES[p.phase-1]}" style="--fill:${(p.phase-1)*100/3}%"><div class="phase-stops">${[1,2,3,4].map(n=>`<button data-action="phase" data-value="${n}" aria-label="${PHASES[n-1]}" aria-pressed="${n===p.phase}">●</button>`).join('')}</div></div><p class="phase-description">${PHASES[p.phase-1]}</p><p class="phase-summary">${phaseSummary(p)}</p></section><section><h3>练习难度</h3><div class="course-segments" role="group" aria-label="练习难度">${[['easy','轻松','leaf'],['standard','标准','frame'],['challenge','挑战','spark']].map(([key,label,mark])=>`<button data-action="difficulty" data-value="${key}" aria-pressed="${key===p.difficulty}">${icon(mark)}${label}</button>`).join('')}</div></section><p class="course-settings-note">下一趟生效，当前题目不变。</p></div>`;
+ return `<div class="course-settings"><section><h3>教材</h3><div class="course-segments" role="group" aria-label="教材版本">${TEXTBOOKS.map(t=>`<button data-action="textbook" data-value="${t.id}" aria-pressed="${p.textbook===t.id}">${t.label}</button>`).join('')}</div></section><section><h3>教材学习进度 <small>累计出题范围</small></h3><div class="phase-track"><div class="phase-head"><span>上册</span><span>下册</span></div><input class="phase-slider" id="course-phase" type="range" min="1" max="4" step="1" value="${p.phase}" data-setting="phase" aria-label="学习进度" aria-valuetext="${PHASES[p.phase-1]}" style="--fill:${(p.phase-1)*100/3}%"><div class="phase-stops">${[1,2,3,4].map(n=>`<button data-action="phase" data-value="${n}" aria-label="${PHASES[n-1]}" aria-pressed="${n===p.phase}">●</button>`).join('')}</div></div><p class="phase-description">${PHASES[p.phase-1]}</p><p class="phase-summary">${phaseSummary(p)}</p></section><section><h3>练习难度</h3><div class="course-segments" role="group" aria-label="练习难度">${[['easy','轻松','leaf'],['standard','标准','frame'],['challenge','挑战','spark']].map(([key,label,mark])=>`<button data-action="difficulty" data-value="${key}" aria-pressed="${key===p.difficulty}">${icon(mark)}${label}</button>`).join('')}</div></section><p class="course-settings-note">下一趟生效，当前题目不变。</p></div>`;
 }
 function coachingMarkup(){const suggestion=difficultySuggestion(state);if(!suggestion)return '';const label={easy:'轻松',standard:'标准',challenge:'挑战'}[suggestion];return `<div class="coaching"><span>${suggestion==='easy'?'先轻松一点，也很好。':`这两趟很顺利，想试试${label}吗？`}</span><button class="secondary" data-action="coaching-accept" data-value="${suggestion}">试试${label}</button><button class="text-button" data-action="coaching-dismiss">先这样</button></div>`;}
 
@@ -298,9 +300,9 @@ function rest() {
   return `<section class="rest-card">${icon('moon')}<h1>${t.restTitle}</h1><p>${t.restBody}<br>已经走过的路，会留在这里。</p>${hasPaused()?`<button class="primary" data-action="resume">${t.resume}${icon('arrow')}</button>`:''}<button class="${hasPaused()?'secondary':'primary'}" data-action="nav" data-view="home">回花园看看${icon('leaf')}</button></section>`;
 }
 function grownups() {
-  return `<div class="page-head"><p class="eyebrow">${icon('book')}给陪伴者的小手册</p><h1>让“想明白”，比“答得快”更重要。</h1><p>可以一起看、一起摆，也可以让孩子按自己的节奏探索。</p></div><div class="guide-grid"><section class="guide-panel"><h2>一个有余地的小花园</h2><p>课程按2026年10月13日核对的官方公开目录配置。部分下册处于新旧衔接，采用当前已正式公布的下册；仅“认识小数”而未核实计算范围的章节暂不加入小数计算。<a href="./curriculum-sources.json" target="_blank" rel="noopener">查看24册课程依据</a>。</p><p>首页可选择1—4年级，每个年级10站，卡片和累计记录独立。小设置中选择教材、四档学习进度及轻松／标准／挑战。进度从上册前半到下册全册，包含前面已经学过的内容；具体计算范围随教材改变。设置只影响下一趟。</p><p>同一难度内，十关也会逐步增加数值、进退位、缺项和应用要求；轻松后段也会练已学的更大数，不会始终停在5以内。学习进度限定课程上限，当前只学到5以内时不会加入新数。每趟先热身，再主练，中途最多1题间隔复习，最后综合练习。没有旧记录时，这题是当前知识的迁移。每一题先自己试试，需要时主动打开小工具。</p><p>答错或借助工具后，仍然能收集魔法卡。用手指、纸笔、积木帮忙也很好；屏幕只能知道是否点击提示，无法知道孩子实际用了什么办法。</p><p>数学答题没有倒计时，每趟结束可以歇一歇；没有排行榜、广告、签到或付费内容。8 张主线卡已经能看见完整的组合魔法。10 张全齐额外打开星光百宝箱，观看暖尾尾的庆祝舞和三种秘密魔法。不需要追求所有题独立完成，也不消耗卡片。每档首次集齐 10 张卡，还会获得一次 60 秒的接星光小游戏；以后完成 3 个不同数学地点，可以再获得一次。次数不累积，刷新和切到后台不会延长时间，提前退出也不返还。</p></section><section class="guide-panel"><h2>这些记录说明什么？</h2><p><b>一起练过：</b>接触过这个办法。<br><b>能独立试试：</b>某一趟的 5 道目标题中，至少 4 题无提示首答正确。<br><b>隔一会也会：</b>之后另一趟，至少隔 3 题，用不同的题再次无提示首答正确。</p><p>这些只是轻量的游戏内练习信号。选择题也可能猜中，6 题不能证明真实掌握，更不代表学习诊断或成绩。鼓励孩子用自己的话或实物解释，再在别的时间试试。</p><p>遇到需要帮助的知识会进入后续复习，每趟最多 1 题。间隔按做过的题和旅程计算，不要求连续几天来玩。</p></section></div>
+  return `<div class="page-head"><p class="eyebrow">${icon('book')}给陪伴者的小手册</p><h1>让“想明白”，比“答得快”更重要。</h1><p>可以一起看、一起摆，也可以让孩子按自己的节奏探索。</p></div><div class="guide-grid"><section class="guide-panel"><h2>一个有余地的小花园</h2><p>课程按2026年10月13日核对的官方公开目录配置。部分下册处于新旧衔接，采用当前已正式公布的下册；仅“认识小数”而未核实计算范围的章节暂不加入小数计算。<a href="./curriculum-sources.json" target="_blank" rel="noopener">查看24册课程依据</a>。</p><p>学习准备页可选择1—4年级，每个年级10站，卡片和累计记录独立。同一页选择教材、四档学习进度及轻松／标准／挑战。进度从上册前半到下册全册，包含前面已经学过的内容；具体计算范围随教材改变。设置只影响下一趟。</p><p>同一难度内，十关也会逐步增加数值、进退位、缺项和应用要求；轻松后段也会练已学的更大数，不会始终停在5以内。学习进度限定课程上限，当前只学到5以内时不会加入新数。每趟先热身，再主练，中途最多1题间隔复习，最后综合练习。没有旧记录时，这题是当前知识的迁移。每一题先自己试试，需要时主动打开小工具。</p><p>答错或借助工具后，仍然能收集魔法卡。用手指、纸笔、积木帮忙也很好；屏幕只能知道是否点击提示，无法知道孩子实际用了什么办法。</p><p>数学答题没有倒计时，每趟结束可以歇一歇；没有排行榜、广告、签到或付费内容。8 张主线卡已经能看见完整的组合魔法。10 张全齐额外打开星光百宝箱，观看暖尾尾的庆祝舞和三种秘密魔法。不需要追求所有题独立完成，也不消耗卡片。每档首次集齐 10 张卡，还会获得一次 60 秒的接星光小游戏；以后完成 3 个不同数学地点，可以再获得一次。次数不累积，刷新和切到后台不会延长时间，提前退出也不返还。</p></section><section class="guide-panel"><h2>这些记录说明什么？</h2><p><b>一起练过：</b>接触过这个办法。<br><b>能独立试试：</b>某一趟的 5 道目标题中，至少 4 题无提示首答正确。<br><b>隔一会也会：</b>之后另一趟，至少隔 3 题，用不同的题再次无提示首答正确。</p><p>这些只是轻量的游戏内练习信号。选择题也可能猜中，6 题不能证明真实掌握，更不代表学习诊断或成绩。鼓励孩子用自己的话或实物解释，再在别的时间试试。</p><p>遇到需要帮助的知识会进入后续复习，每趟最多 1 题。间隔按做过的题和旅程计算，不要求连续几天来玩。</p></section></div>
   <section class="guide-panel"><h2>${state.grade||1} 年级 · 探索记录</h2><table class="skill-table"><thead><tr><th scope="col">地点</th><th scope="col">独立 / 一起完成</th><th scope="col">练习信号</th></tr></thead><tbody>${levels().map(l=>`<tr><td>${String(l.id).padStart(2,'0')} ${l.title}${l.optional?' · 自选':''}</td><td>${state.stages[l.id]?.independent||0} / ${state.stages[l.id]?.supported||0}</td><td class="status-label">${t.status[stageStatus(state,l.id)]}</td></tr>`).join('')}</tbody></table></section>
-  <div class="guide-grid" style="margin-top:23px"><section class="guide-panel"><h2>只留在这里的小脚印</h2><p>无需账号，不输入孩子姓名或其他个人信息。没有外部统计或追踪。题目、插画和字体由游戏网站提供，音效在设备上合成。托管服务 GitHub Pages 会为安全目的记录访问者 IP。</p><p>进度只保存在<b>当前设备、当前浏览器、当前网址</b>里。电脑、手机、iPad 上界面都会适配，但<b>进度不会自动同步</b>。清除浏览器网站数据、隐私浏览结束或更换端口可能失去进度。</p><p>公开网址可直接分享给家长，无需电脑保持开机。没有自动跨设备同步。</p><p>首页“反馈”或小设置中的“反馈与建议”可进入腾讯兔小巢。请家长协助留言，不填写孩子的姓名、学校或电话。反馈页面由腾讯提供，游戏不会自动传送本地存档或答题记录。</p></section><section class="guide-panel"><h2>舒适地玩</h2><p>保留当前设备的声音开关，新设备默认关闭。开启声音后，旅程中会播放轻柔的花园背景音乐。答对有星光短音，过关有庆祝乐句，施法和百宝箱有不同配乐。首次点击开启或进入游戏会启动手机音频；关掉后立即停止。请同时使用设备系统音量；浏览器无法可靠识别 iPad/iPhone 的硬件静音拨片。</p><div class="setting-row"><label for="guide-motion">画面动态</label>${motionSelect('guide-motion')}</div><p>减少动态会直接展示每种魔法的完整画面，奖励内容一样多。</p><p>中文为首个语言版本；代码预留语言字典。真实儿童试玩、实际 iPad/手机和声音听感尚未验证。</p></section></div><section class="reset-panel"><div><h3>重新开始一个花园</h3><p>会清除本游戏在这个浏览器里所有年级的卡片、练习记录和小游戏机会。不会影响其他网站。</p></div><button class="secondary danger" data-action="reset-dialog">${icon('reset')}重置本地进度</button></section>`;
+  <div class="guide-grid" style="margin-top:23px"><section class="guide-panel"><h2>只留在这里的小脚印</h2><p>无需账号，不输入孩子姓名或其他个人信息。没有外部统计或追踪。题目、插画和字体由游戏网站提供，音效在设备上合成。托管服务 GitHub Pages 会为安全目的记录访问者 IP。</p><p>进度只保存在<b>当前设备、当前浏览器、当前网址</b>里。电脑、手机、iPad 上界面都会适配，但<b>进度不会自动同步</b>。清除浏览器网站数据、隐私浏览结束或更换端口可能失去进度。</p><p>公开网址可直接分享给家长，无需电脑保持开机。没有自动跨设备同步。</p><p>更多设置中的“反馈与建议”可进入腾讯兔小巢。请家长协助留言，不填写孩子的姓名、学校或电话。反馈页面由腾讯提供，游戏不会自动传送本地存档或答题记录。</p></section><section class="guide-panel"><h2>舒适地玩</h2><p>保留当前设备的声音开关，新设备默认关闭。开启声音后，旅程中会播放轻柔的花园背景音乐。答对有星光短音，过关有庆祝乐句，施法和百宝箱有不同配乐。首次点击开启或进入游戏会启动手机音频；关掉后立即停止。请同时使用设备系统音量；浏览器无法可靠识别 iPad/iPhone 的硬件静音拨片。</p><div class="setting-row"><label for="guide-motion">画面动态</label>${motionSelect('guide-motion')}</div><p>减少动态会直接展示每种魔法的完整画面，奖励内容一样多。</p><p>中文为首个语言版本；代码预留语言字典。真实儿童试玩、实际 iPad/手机和声音听感尚未验证。</p></section></div><section class="reset-panel"><div><h3>重新开始一个花园</h3><p>会清除本游戏在这个浏览器里所有年级的卡片、练习记录和小游戏机会。不会影响其他网站。</p></div><button class="secondary danger" data-action="reset-dialog">${icon('reset')}重置本地进度</button></section>`;
 }
 function motionSelect(id) {
   return `<select id="${id}" data-setting="motion" aria-label="画面动态">${[['system','跟随设备设置'],['reduce','减少动态'],['full','完整动态']].map(([v,name])=>`<option value="${v}" ${state.settings.motion===v?'selected':''}>${name}</option>`).join('')}</select>`;
@@ -327,15 +329,15 @@ function treasurePage() {
 function modalView() {
  if(!modal)return '';
  if(modal==='feedback')return feedbackDialogMarkup({embedded:(window.visualViewport?.width||window.innerWidth)>1040});
- if(modal==='album')return albumDetailMarkup(selectedAlbum,{cinema:view==='treasure'&&treasure.phase==='world'});
+ if(modal==='album')return albumDetailMarkup(selectedAlbum,{cinema:view==='treasure'&&treasure.phase==='world',position:view==='treasure'&&treasure.phase==='world'?treasure.world.index+1:null});
  let title='',content='',actions='';
  const close=(label='好了')=>`<button class="primary" data-action="close-dialog">${label}${icon('check')}</button>`;
  if(modal==='hint'){
   const q=currentQuestion(state);if(!q)return '';title='一起想一想';content=hintMarkup(state.session,q);actions=close('回到题目');
  }
  if(modal==='settings'){
-  title='小设置';
-  content=`${difficultyControl()}<div class="settings-feedback">${feedbackButtonMarkup()}</div><details class="extra-settings"><summary>更多设置</summary>
+  title='更多设置';
+  content=`<div class="settings-course-summary"><p>${state.grade||1} 年级 · ${TEXTBOOKS.find(t=>t.id===activeCourse().textbook).label} · ${difficultyLabel()}</p><button class="secondary" data-action="prepare">调整学习设置${icon('settings')}</button><p>只影响下一趟，当前题目和进度都会保留。</p></div><div class="settings-feedback">${feedbackButtonMarkup()}</div><div class="extra-settings">
    <div class="setting-row"><span class="modal-label">声音</span><button class="secondary" data-action="sound" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}${state.settings.sound?'开启':'关闭'}</button></div>
    <div class="setting-row"><label class="modal-label" for="modal-motion">动画</label>${motionSelect('modal-motion')}</div>
    <div class="settings-links"><button class="text-button" data-action="fullscreen">${icon('frame')}切换全屏</button><button class="text-button" data-action="app-help">${icon('leaf')}添加主屏幕</button><button class="text-button" data-action="nav" data-view="grownups">${icon('book')}给大人看</button></div>
@@ -343,7 +345,7 @@ function modalView() {
    <section class="restart-settings" aria-label="重新开始"><p>进度保存在当前浏览器，游戏更新会保留。</p>
     <button class="secondary" data-action="grade-reset-dialog">重新开始 ${profiles.selectedGrade} 年级</button>
     <button class="text-button danger" data-action="reset-dialog">清空本机全部进度</button>
-   </section></details>`;
+   </section></div>`;
   actions=close();
  }
  if(modal==='question-cycle'){
@@ -377,6 +379,8 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   if(!oldCharacter)stopCharacter();
   const keepScroll=preserveScroll&&document.body.dataset.view===view;
   const mainScroll=keepScroll?(document.querySelector('#main')?.scrollTop||0):0;
+  const helpScroll=modal==='hint'?(document.querySelector('.help-content')?.scrollTop||0):0;
+  const setupScroll=view==='setup'?(document.querySelector('.preparation-scroll')?.scrollTop||0):0;
   const problemScroll=keepScroll?(document.querySelector('.problem-card')?.scrollTop||0):0;
   // Settings update the DOM. Preserve the visual timeline independently of
   // that render, including while a child has explicitly paused the scene.
@@ -385,7 +389,7 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   const times=oldScene?.getAnimations?.({subtree:true}).map(a=>a.currentTime) || [];
   applyMotion(); document.documentElement.lang=locale;
   document.body.dataset.view=view;
-  const pages={home,vault,intro,lesson,reward,rest,grownups,magic:magicPage,treasure:treasurePage,'mini-menu':miniMenu,mini:()=>starPlayMarkup(rewards.active),'mini-end':()=>starPlayEndMarkup(rewards.lastPlay)};
+  const pages={cover,setup:prepare,home,vault,intro,lesson,reward,rest,grownups,magic:magicPage,treasure:treasurePage,'mini-menu':miniMenu,mini:()=>starPlayMarkup(rewards.active),'mini-end':()=>starPlayEndMarkup(rewards.lastPlay)};
   app.innerHTML=`<div class="shell">${header()}${storageIssue?`<div class="storage-warning" role="status">${storageIssue}</div>`:''}<main id="main" tabindex="-1">${(pages[view]||home)()}</main>${footer()}</div>${modalView()}`;
   if(times.length)document.querySelector(view==='magic'?'.magic-view':'.curtain,.expression-world')?.getAnimations?.({subtree:true}).forEach((animation,i)=>{if(times[i]!==undefined&&times[i]!==null)animation.currentTime=times[i];});
   if(view==='treasure'){
@@ -396,6 +400,8 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
    }
   }
   if(keepScroll){document.querySelector('#main').scrollTop=mainScroll;const problem=document.querySelector('.problem-card');if(problem)problem.scrollTop=problemScroll;}
+  if(modal==='hint'&&document.querySelector('.help-content'))document.querySelector('.help-content').scrollTop=helpScroll;
+  if(view==='setup'&&keepScroll)document.querySelector('.preparation-scroll').scrollTop=setupScroll;
   if(view==='mini')installMini();
   if(view==='lesson')installCharacter(characterKey,oldCharacter);
   if(modal){document.querySelector('.shell')?.setAttribute('inert','');if(focusModal)queueMicrotask(()=>document.querySelector('.modal button')?.focus());}
@@ -415,7 +421,7 @@ function restartGarden(scope,grade){
  stopMagic();stopTreasure();stopMini();stopCharacter();effects.stop();sounds.stop();
  profiles=next.profiles;state=profiles.grades[profiles.selectedGrade];rewards=next.rewards;
  protectOriginalStorage=false;storageIssue='';selectedLevel=1;cardSelection=0;cardOrder=[];hintMode='';hintClosed=false;
- sounds.setEnabled(state.settings.sound);applyMotion();go('home');notify('新的花园，准备好了。');
+ sounds.setEnabled(state.settings.sound);applyMotion();preparationBack='cover';go('setup');notify('新的花园，准备好了。');
 }
 function startLevel(id) {cardSelection=0;cardOrder=[];enterImmersivePlay();sounds.resume({unlock:false});effects.resume();try{beginSession(state,Number(id),{difficulty:state.difficulty||'standard',course:state.courseSettings});}catch(error){if(error.code==='QUESTION_POOL_EXHAUSTED'){selectedLevel=Number(id);openModal('question-cycle');return;}notify('这一趟暂时没准备好，请换一关试试。');return;}hintMode='';hintClosed=false;save();go('lesson');}
 function startMagic(id,finale=false,completedRound=false) {
@@ -550,14 +556,16 @@ app.addEventListener('click',event=>{
   }
   if(action==='coaching-dismiss'){dismissSuggestion(state);save();render();return;}
   if(action==='coaching-accept'){if(button.dataset.value===difficultySuggestion(state))state.difficulty=button.dataset.value;dismissSuggestion(state);save();render();return;}
-  if(action.startsWith('hint-')){const q=currentQuestion(state);if(!q||modal!=='hint')return;markHint(state);handleHint(state.session,q,action,button.dataset.value);save();render();document.querySelector('.help-content')?.setAttribute('tabindex','-1');document.querySelector('.help-content')?.focus({preventScroll:true});return;}
+  if(action.startsWith('hint-')){const q=currentQuestion(state);if(!q||modal!=='hint')return;const before=state.session.hintState?.step||0;markHint(state);handleHint(state.session,q,action,button.dataset.value);save();render();document.querySelector('.help-content')?.focus({preventScroll:true});if(action==='hint-answer'&&state.session.hintState.step>before)(document.querySelector('.helper-step')||document.querySelector('.helper-finished'))?.scrollIntoView({block:'nearest'});return;}
 
   if(action==='star-play-menu'){go('mini-menu');return;}
   if(action==='star-play-start'){launchMini();return;}
   if(action==='star-play-resume'){if(getPlayStatus(rewards).status==='running')go('mini');else go('mini-end');return;}
   if(action==='star-play-exit'){stopMini();rewards=finishPlay(rewards,Date.now(),'left');save();go('mini-end');return;}
   if(action==='question-cycle'){resetQuestionCycle(state);save();startLevel(selectedLevel);return;}
-  if(action==='grade'){const grade=Number(button.dataset.grade);if(![1,2,3,4].includes(grade)||grade===profiles.selectedGrade)return;save();selectGrade(profiles,grade);state=profiles.grades[grade];cardSelection=0;cardOrder=[];hintMode='';hintClosed=false;save();go('home');return;}
+  if(action==='prepare'){preparationBack=view==='cover'?'cover':'home';save();go('setup');return;}
+  if(action==='setup-start'){const next=suggested();if(hasPaused()){selectedLevel=next;openModal('replace-session');}else startLevel(next);return;}
+  if(action==='grade'){const grade=Number(button.dataset.grade);if(![1,2,3,4].includes(grade)||grade===profiles.selectedGrade)return;save();selectGrade(profiles,grade);state=profiles.grades[grade];cardSelection=0;cardOrder=[];hintMode='';hintClosed=false;save();go('setup');return;}
   if(action==='nav'){go(button.dataset.view);return;}
   if(action==='intro'){enterImmersivePlay();selectedLevel=id;go('intro');return;}
   if(action==='begin'){if(hasPaused()){selectedLevel=id;openModal('replace-session');}else startLevel(id);return;}
@@ -565,8 +573,8 @@ app.addEventListener('click',event=>{
   if(action==='resume'){if(state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct&&!state.session?.completed){finishRound();return;}enterImmersivePlay();hintMode='';hintClosed=false;go('lesson');return;}
   if(action==='pause'){save();go('rest');return;}
   if(action==='rest'){go('rest');return;}
-  if(action==='map'){document.querySelector('#garden-map')?.scrollIntoView({behavior:reduceMotion()?'instant':'smooth',block:'start'});document.querySelector('#garden-map button')?.focus({preventScroll:true});return;}
-  if(action==='fullscreen'){void toggleFullscreen().then(status=>{if(!status.fullscreen&&!status.standalone){if(status.platform==='ios')openModal('app-help');else notify(getInstallHint());}});return;}
+  if(action==='map'){save();go('home');return;}
+  if(action==='fullscreen'){const wasFullscreen=getImmersiveStatus().fullscreen;void toggleFullscreen().then(status=>{if(!wasFullscreen&&!status.fullscreen&&!status.standalone){if(status.platform==='ios')openModal('app-help');else notify(getInstallHint());}});return;}
   if(action==='app-help'){openModal('app-help');return;}
   if(action==='settings'){openModal('settings');return;}
   if(action==='feedback'){feedbackReturnModal=modal==='settings'?'settings':'';openModal('feedback');return;}

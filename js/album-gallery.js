@@ -258,29 +258,30 @@ export const ALBUM_COVERS = Object.freeze([
 
 const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
+export const WECHAT_STICKER_URL='http://weixin.qq.com/jumpemoticonstore?token=AAshJxQFAAABAAAAAADV7YNg8f96W606qCLPahAAAABQfF0uS5S5suWyaDJKBpGHjxl7lp77FaZsykLw8UED78rO543RIuzYfOI-urelBSe-kZ5Fa9h0SoqeBXquC2_DN8WwQyWgGYsUyxv2Z-AzYjMTxKi6zc2mrKDc7sno5ci2';
+export function stickerVisitMarkup(){return `<aside class="sticker-visit" aria-label="暖尾尾微信表情"><img src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾" width="72" height="72"><div><h2>把暖尾尾带进聊天里</h2><p>一句问候，一点开心，暖尾尾陪着你。</p><a class="secondary" href="${WECHAT_STICKER_URL}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">去微信看暖尾尾表情 ${icon('arrow')}</a><small>请家长帮忙打开；若浏览器没有跳转，可在微信中打开本页后再点。</small></div></aside>`;}
+
 export function getAlbum(id) {
   return ALBUM_COVERS.find(album => album.id === id) || null;
 }
 
 export function galleryMarkup() {
   return `<section class="album-cover-gallery" aria-labelledby="album-gallery-title">
-    <div class="album-gallery-heading"><div><p class="album-gallery-kicker">百宝箱里的另一份惊喜</p><h2 id="album-gallery-title">暖尾尾的表情百宝册</h2><p>开心、调皮、想一想……原来我有这么多模样！点一张，看看完整封面。</p></div><span class="album-gallery-count">${ALBUM_COVERS.length} 张封面</span></div>
-    <div class="album-cover-grid" aria-label="所有暖尾尾专辑封面">${ALBUM_COVERS.map((album, index) => `<button class="album-cover-card" data-action="album-open" data-album="${album.id}" aria-label="查看${escape(album.title)}的完整封面"><span class="album-cover-image"><img src="${album.thumb}" alt="" width="240" height="240" loading="eager" decoding="async"><span class="album-cover-index">${String(index + 1).padStart(2, '0')}</span><span class="album-cover-expand">${icon('frame')}</span></span><span class="album-cover-title">${escape(album.title)}</span></button>`).join('')}</div>
-    <p class="album-gallery-note">这些封面来自暖尾尾已有的专辑作品，也包含设计候选稿。</p>
+    <div class="album-gallery-heading"><div><p class="album-gallery-kicker">百宝箱里的另一份惊喜</p><h2 id="album-gallery-title">暖尾尾的表情百宝册</h2><p>开心、调皮、想一想……原来我有这么多模样！共 21 张代表图，点一张放大看。</p></div><span class="album-gallery-count">${ALBUM_COVERS.length} 张代表图</span></div>
+    <div class="album-cover-grid" aria-label="暖尾尾的21张代表图">${ALBUM_COVERS.map((album, index) => `<button class="album-cover-card" data-action="album-open" data-album="${album.id}" aria-label="查看${escape(album.title)}的代表图"><span class="album-cover-image"><img src="${album.thumb}" alt="" width="240" height="240" loading="eager" decoding="async"><span class="album-cover-index">${String(index + 1).padStart(2, '0')}</span><span class="album-cover-expand">${icon('frame')}</span></span><span class="album-cover-title">${escape(album.title)}</span></button>`).join('')}</div>
+    <p class="album-gallery-note">每个专辑只展示一张代表图，也包含设计候选稿；这里没有完整专辑。</p>
   </section>`;
 }
 
 // Return a complete modal so the application can own focus, Escape, and pause.
-export function albumDetailMarkup(id,{cinema=false}={}) {
+export function albumDetailMarkup(id,{cinema=false,position=null}={}) {
   const album = getAlbum(id);
   if (!album) return '';
-  const index = ALBUM_COVERS.indexOf(album);
-  const previous = ALBUM_COVERS[(index + ALBUM_COVERS.length - 1) % ALBUM_COVERS.length];
-  const next = ALBUM_COVERS[(index + 1) % ALBUM_COVERS.length];
+  const index = Number.isInteger(position)&&position>=1&&position<=ALBUM_COVERS.length?position-1:ALBUM_COVERS.indexOf(album);
   return `<div class="modal-backdrop album-modal-backdrop"><section class="modal album-modal" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-    <button class="modal-close album-detail-close" data-action="close-dialog" aria-label="${cinema?'关闭大图，回到表情世界':'关闭大图，回到全部封面'}">${icon('close')}</button>
-    <div class="album-detail-heading"><p class="album-gallery-kicker">${cinema?'播放已暂停，可以慢慢看':'暖尾尾的表情百宝册'} · ${index + 1} / ${ALBUM_COVERS.length}</p><h2 id="dialog-title">${escape(album.title)}</h2></div>
-    <figure class="album-detail-figure"><div class="album-detail-frame ${album.nativeOnly ? 'album-detail-native' : ''}"><img class="album-detail-image" src="${album.full}" alt="${escape(album.title)}的完整表情专辑封面" width="${album.width}" height="${album.height}" decoding="async"></div><figcaption>${escape(album.description)}</figcaption></figure>
-    <div class="album-detail-controls"><button class="album-detail-button" data-action="album-open" data-album="${previous.id}" aria-label="上一张：${escape(previous.title)}">${icon('back')}上一张</button><button class="album-detail-button album-detail-done" data-action="close-dialog">${cinema?'回到世界':'看完啦'}${icon('check')}</button><button class="album-detail-button" data-action="album-open" data-album="${next.id}" aria-label="下一张：${escape(next.title)}">下一张${icon('arrow')}</button></div>
+    <button class="modal-close album-detail-close" data-action="close-dialog" aria-label="${cinema?'关闭大图，回到表情世界':'关闭大图，回到代表图'}">${icon('close')}</button>
+    <div class="album-detail-heading"><p class="album-gallery-kicker">${cinema?'播放已暂停 · 当前代表图':'暖尾尾的表情代表图'} · ${index + 1} / ${ALBUM_COVERS.length}</p><h2 id="dialog-title">${escape(album.title)}</h2></div>
+    <figure class="album-detail-figure"><div class="album-detail-frame ${album.nativeOnly ? 'album-detail-native' : ''}"><img class="album-detail-image" src="${album.full}" alt="${escape(album.title)}的表情代表图" width="${album.width}" height="${album.height}" decoding="async"></div><figcaption>${escape(album.description)}</figcaption></figure>
+    <p class="album-single-note">这是本专辑的一张代表图。</p><div class="album-detail-controls single-picture"><button class="album-detail-button album-detail-done" data-action="close-dialog">${cinema?'回到表情世界':'看完啦'}${icon('check')}</button></div>
   </section></div>`;
 }
