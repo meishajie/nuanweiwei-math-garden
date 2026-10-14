@@ -1,4 +1,5 @@
-import {parentGuideMarkup} from './course-guide.js?v=20261014-10';
+import {parentGuideMarkup} from './course-guide.js?v=20261014-12';
+import {googleConsentMarkup,readGoogleConsent,writeGoogleConsent} from './analytics-preferences.js?v=20261014-12';
 import {coverMarkup,preparationMarkup,mapMarkup} from './entry.js?v=20261014-6';
 import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-7';
 import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-6';
@@ -31,6 +32,7 @@ const REWARD_KEY = 'nuanweiwei.star-play.v1';
 const app = document.querySelector('#app');
 const safe = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let storageIssue = '';
+let analyticsMessage='';
 let protectOriginalStorage=false;
 let profiles = createProfiles();
 try {
@@ -343,7 +345,7 @@ function modalView() {
    <div class="setting-row"><span class="modal-label">声音</span><button class="secondary" data-action="sound" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}${state.settings.sound?'开启':'关闭'}</button></div>
    <div class="setting-row"><label class="modal-label" for="modal-motion">动画</label>${motionSelect('modal-motion')}</div>
    <div class="settings-links"><button class="text-button" data-action="fullscreen">${icon('frame')}切换全屏</button><button class="text-button" data-action="app-help">${icon('leaf')}添加主屏幕</button><button class="text-button" data-action="nav" data-view="grownups">${icon('book')}给大人看</button></div>
-   <p class="audio-status" role="status">${safe(audioMessage())}</p>
+   <p class="audio-status" role="status">${safe(audioMessage())}</p>${googleConsentMarkup(window,analyticsMessage)}
    <section class="restart-settings" aria-label="重新开始"><p>进度保存在当前浏览器，游戏更新会保留。</p>
     <button class="secondary" data-action="grade-reset-dialog">重新开始 ${profiles.selectedGrade} 年级</button>
     <button class="text-button danger" data-action="reset-dialog">清空本机全部进度</button>
@@ -383,6 +385,7 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   const mainScroll=keepScroll?(document.querySelector('#main')?.scrollTop||0):0;
   const magicScroll=keepScroll?(document.querySelector('.magic-result-scroll')?.scrollTop||0):0;
   const helpScroll=modal==='hint'?(document.querySelector('.help-content')?.scrollTop||0):0;
+  const settingsScroll=modal==='settings'?(document.querySelector('.modal-content')?.scrollTop||0):0;
   const setupScroll=view==='setup'?(document.querySelector('.preparation-scroll')?.scrollTop||0):0;
   const problemScroll=keepScroll?(document.querySelector('.problem-card')?.scrollTop||0):0;
   // Settings update the DOM. Preserve the visual timeline independently of
@@ -404,6 +407,7 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   }
   if(keepScroll){const result=document.querySelector('.magic-result-scroll');if(result)result.scrollTop=magicScroll;document.querySelector('#main').scrollTop=mainScroll;const problem=document.querySelector('.problem-card');if(problem)problem.scrollTop=problemScroll;}
   if(modal==='hint'&&document.querySelector('.help-content'))document.querySelector('.help-content').scrollTop=helpScroll;
+  if(modal==='settings'&&document.querySelector('.modal-content'))document.querySelector('.modal-content').scrollTop=settingsScroll;
   if(view==='setup'&&keepScroll)document.querySelector('.preparation-scroll').scrollTop=setupScroll;
   if(view==='mini')installMini();
   if(view==='lesson')installCharacter(characterKey,oldCharacter);
@@ -421,6 +425,7 @@ function restartGarden(scope,grade){
  const next=restartProgress(profiles,rewards,{scope,grade});
  try{persistRestart(localStorage,next,{scope,grade});}
  catch(error){notify(error.code==='RESTART_STORAGE_UNAVAILABLE'?'暂时无法保存，请先保留当前页面。':'这次没有重置成功，请稍后再试。');return;}
+ if(scope==='all')writeGoogleConsent(false,window);
  stopMagic();stopTreasure();stopMini();stopCharacter();effects.stop();sounds.stop();
  profiles=next.profiles;state=profiles.grades[profiles.selectedGrade];rewards=next.rewards;
  protectOriginalStorage=false;storageIssue='';selectedLevel=1;cardSelection=0;cardOrder=[];hintMode='';hintClosed=false;
@@ -580,6 +585,7 @@ app.addEventListener('click',event=>{
   if(action==='fullscreen'){const wasFullscreen=getImmersiveStatus().fullscreen;void toggleFullscreen().then(status=>{if(!wasFullscreen&&!status.fullscreen&&!status.standalone){if(status.platform==='ios')openModal('app-help');else notify(getInstallHint());}});return;}
   if(action==='app-help'){openModal('app-help');return;}
   if(action==='settings'){openModal('settings');return;}
+  if(action==='google-consent-toggle'){const allowed=!readGoogleConsent(window);analyticsMessage=writeGoogleConsent(allowed,window)?'':'未能保存选择，设置未改变。';render();document.querySelector('[data-action="google-consent-toggle"]')?.focus({preventScroll:true});return;}
   if(action==='feedback'){feedbackReturnModal=modal==='settings'?'settings':'';openModal('feedback');return;}
   if(action==='album-open'){if(view!=='treasure'||!treasure.opened||!hasTreasure()||!getAlbum(button.dataset.album))return;if(treasure.phase==='world'){treasure.paused=true;stopTreasure();sounds.pause();if(worldScene(treasure.world).id!==button.dataset.album)worldAction(treasure.world,'select',button.dataset.album);}if(modal!=='album')albumReturnId=button.dataset.album;selectedAlbum=button.dataset.album;openModal('album');return;}
   if(action==='close-dialog'){closeModal();return;}
