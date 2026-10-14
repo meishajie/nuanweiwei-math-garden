@@ -1,24 +1,24 @@
-import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-3';
-import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-3';
-import {restartProgress,persistRestart} from './restart.js?v=20261014-3';
-import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261014-3';
-import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-3';
-import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-3';
-import { getLevels, difficultyRange } from './curriculum.js?v=20261014-3';
-import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261014-3';
-import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261014-3';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261014-3';
-import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-3';
-import {columnMethod} from './column-method.js?v=20261014-3';
-import { t, locale } from './i18n.js?v=20261014-3';
-import { icon, emblem, magicArt } from './art.js?v=20261014-3';
-import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261014-3';
-import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-3';
-import { createEffects } from './effects.js?v=20261014-3';
-import { createSoundPlayer } from './sounds.js?v=20261014-3';
-import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261014-3';
-import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261014-3';
-import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261014-3';
+import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-4';
+import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-4';
+import {restartProgress,persistRestart} from './restart.js?v=20261014-4';
+import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261014-4';
+import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-4';
+import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-4';
+import { getLevels, difficultyRange } from './curriculum.js?v=20261014-4';
+import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261014-4';
+import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261014-4';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261014-4';
+import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-4';
+import {columnMethod} from './column-method.js?v=20261014-4';
+import { t, locale } from './i18n.js?v=20261014-4';
+import { icon, emblem, magicArt } from './art.js?v=20261014-4';
+import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261014-4';
+import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-4';
+import { createEffects } from './effects.js?v=20261014-4';
+import { createSoundPlayer } from './sounds.js?v=20261014-4';
+import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261014-4';
+import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261014-4';
+import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261014-4';
 
 const STORAGE_KEY = 'nuanweiwei.math-garden.v1';
 const PROFILE_KEY = 'nuanweiwei.math-garden.profiles.v3';
@@ -522,6 +522,18 @@ function pauseCelebration(paused){
 function pauseScene(paused) {
   if(paused){effects.pause();sounds.pause();}else{effects.resume();sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play('magic',{offset:magic.elapsed/1000});if(view==='treasure'&&celebrationActive(treasure))playCelebrationSound();}
 }
+function holdWorldPicture(target){
+ if(view!=='treasure'||treasure.phase!=='world'||!target?.closest?.('.world-picture'))return;
+ treasure.paused=true;stopTreasure();sounds.pause();
+ const root=document.querySelector('.expression-world');if(!root)return;
+ root.getAnimations?.({subtree:true}).forEach(a=>a.pause());root.classList.add('paused');
+ const control=root.querySelector('[data-action="world-pause"]');
+ if(control){control.setAttribute('aria-pressed','true');control.innerHTML=icon('play')+'继续参观';}
+ const note=root.querySelector('.world-playback-note');if(note)note.textContent=' · 已暂停，等你说继续';
+}
+// Hold the same DOM node from touch-down until click; an automatic flip must not steal it.
+app.addEventListener('pointerdown',event=>holdWorldPicture(event.target),{capture:true});
+app.addEventListener('focusin',event=>{if(event.target.matches?.(':focus-visible'))holdWorldPicture(event.target);});
 
 app.addEventListener('click',event=>{
   const button=event.target.closest('button[data-action]');if(!button||button.disabled)return;
