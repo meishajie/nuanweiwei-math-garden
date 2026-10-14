@@ -1,10 +1,12 @@
+import {parentGuideMarkup} from './course-guide.js?v=20261014-8';
 import {coverMarkup,preparationMarkup,mapMarkup} from './entry.js?v=20261014-6';
-import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-6';
+import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-7';
 import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-6';
 import {restartProgress,persistRestart} from './restart.js?v=20261014-6';
 import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261014-4';
 import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-6';
-import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-6';
+import {dismissSuggestion} from './engine.js?v=20261014-6';
+import {acceptDifficultySuggestion,undoDifficultySuggestion,difficultyCoachingMarkup} from './coaching.js?v=20261014-7';
 import { getLevels, difficultyRange } from './curriculum.js?v=20261014-4';
 import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261014-4';
 import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261014-4';
@@ -45,6 +47,7 @@ let miniController=null;
 const levels=()=>getLevels(state.grade||profiles.selectedGrade,view==='lesson'&&state.session&&!state.session.completed&&state.session.mode==='course-v1'?state.session.profile:{...state.courseSettings,difficulty:state.difficulty||'standard'});
 const activeCourse=()=>courseProfile(state.grade||1,{...state.courseSettings,difficulty:state.difficulty||'standard'});
 let view = 'cover';
+let coachingReceipt=null;
 let preparationBack='cover';
 let selectedLevel = 1;
 let hintMode = '';
@@ -136,6 +139,7 @@ function installCharacter(key,oldElement){
 function stopMagic() { cancelAnimationFrame(magic.frame); magic.frame = 0; }
 function stopTreasure() { cancelAnimationFrame(treasure.frame); treasure.frame=0;worldMusicRunning=false;worldSoundTicket++; }
 function go(next) {
+  coachingReceipt=null;
   if(view==='mini'&&next!=='mini'){stopMini();rewards=finishPlay(rewards,Date.now(),'left');save();}
   clearTimeout(completionTimer);completionTimer=0;
   stopMagic(); stopTreasure(); effects.stop(); sounds.stopEffects(); sounds.resume({unlock:false});effects.resume(); modal = ''; view = next;
@@ -294,15 +298,13 @@ function difficultyControl() {
  const p=activeCourse();
  return `<div class="course-settings"><section><h3>教材</h3><div class="course-segments" role="group" aria-label="教材版本">${TEXTBOOKS.map(t=>`<button data-action="textbook" data-value="${t.id}" aria-pressed="${p.textbook===t.id}">${t.label}</button>`).join('')}</div></section><section><h3>教材学习进度 <small>累计出题范围</small></h3><div class="phase-track"><div class="phase-head"><span>上册</span><span>下册</span></div><input class="phase-slider" id="course-phase" type="range" min="1" max="4" step="1" value="${p.phase}" data-setting="phase" aria-label="学习进度" aria-valuetext="${PHASES[p.phase-1]}" style="--fill:${(p.phase-1)*100/3}%"><div class="phase-stops">${[1,2,3,4].map(n=>`<button data-action="phase" data-value="${n}" aria-label="${PHASES[n-1]}" aria-pressed="${n===p.phase}">●</button>`).join('')}</div></div><p class="phase-description">${PHASES[p.phase-1]}</p><p class="phase-summary">${phaseSummary(p)}</p></section><section><h3>练习难度</h3><div class="course-segments" role="group" aria-label="练习难度">${[['easy','轻松','leaf'],['standard','标准','frame'],['challenge','挑战','spark']].map(([key,label,mark])=>`<button data-action="difficulty" data-value="${key}" aria-pressed="${key===p.difficulty}">${icon(mark)}${label}</button>`).join('')}</div></section><p class="course-settings-note">下一趟生效，当前题目不变。</p></div>`;
 }
-function coachingMarkup(){const suggestion=difficultySuggestion(state);if(!suggestion)return '';const label={easy:'轻松',standard:'标准',challenge:'挑战'}[suggestion];return `<div class="coaching"><span>${suggestion==='easy'?'先轻松一点，也很好。':`这两趟很顺利，想试试${label}吗？`}</span><button class="secondary" data-action="coaching-accept" data-value="${suggestion}">试试${label}</button><button class="text-button" data-action="coaching-dismiss">先这样</button></div>`;}
+function coachingMarkup(){return difficultyCoachingMarkup(state,coachingReceipt);}
 
 function rest() {
   return `<section class="rest-card">${icon('moon')}<h1>${t.restTitle}</h1><p>${t.restBody}<br>已经走过的路，会留在这里。</p>${hasPaused()?`<button class="primary" data-action="resume">${t.resume}${icon('arrow')}</button>`:''}<button class="${hasPaused()?'secondary':'primary'}" data-action="nav" data-view="home">回花园看看${icon('leaf')}</button></section>`;
 }
 function grownups() {
-  return `<div class="page-head"><p class="eyebrow">${icon('book')}给陪伴者的小手册</p><h1>让“想明白”，比“答得快”更重要。</h1><p>可以一起看、一起摆，也可以让孩子按自己的节奏探索。</p></div><div class="guide-grid"><section class="guide-panel"><h2>一个有余地的小花园</h2><p>课程按2026年10月13日核对的官方公开目录配置。部分下册处于新旧衔接，采用当前已正式公布的下册；仅“认识小数”而未核实计算范围的章节暂不加入小数计算。<a href="./curriculum-sources.json" target="_blank" rel="noopener">查看24册课程依据</a>。</p><p>学习准备页可选择1—4年级，每个年级10站，卡片和累计记录独立。同一页选择教材、四档学习进度及轻松／标准／挑战。进度从上册前半到下册全册，包含前面已经学过的内容；具体计算范围随教材改变。设置只影响下一趟。</p><p>同一难度内，十关也会逐步增加数值、进退位、缺项和应用要求；轻松后段也会练已学的更大数，不会始终停在5以内。学习进度限定课程上限，当前只学到5以内时不会加入新数。每趟先热身，再主练，中途最多1题间隔复习，最后综合练习。没有旧记录时，这题是当前知识的迁移。每一题先自己试试，需要时主动打开小工具。</p><p>答错或借助工具后，仍然能收集魔法卡。用手指、纸笔、积木帮忙也很好；屏幕只能知道是否点击提示，无法知道孩子实际用了什么办法。</p><p>数学答题没有倒计时，每趟结束可以歇一歇；没有排行榜、广告、签到或付费内容。8 张主线卡已经能看见完整的组合魔法。10 张全齐额外打开星光百宝箱，观看暖尾尾的庆祝舞和三种秘密魔法。不需要追求所有题独立完成，也不消耗卡片。每档首次集齐 10 张卡，还会获得一次 60 秒的接星光小游戏；以后完成 3 个不同数学地点，可以再获得一次。次数不累积，刷新和切到后台不会延长时间，提前退出也不返还。</p></section><section class="guide-panel"><h2>这些记录说明什么？</h2><p><b>一起练过：</b>接触过这个办法。<br><b>能独立试试：</b>某一趟的 5 道目标题中，至少 4 题无提示首答正确。<br><b>隔一会也会：</b>之后另一趟，至少隔 3 题，用不同的题再次无提示首答正确。</p><p>这些只是轻量的游戏内练习信号。选择题也可能猜中，6 题不能证明真实掌握，更不代表学习诊断或成绩。鼓励孩子用自己的话或实物解释，再在别的时间试试。</p><p>遇到需要帮助的知识会进入后续复习，每趟最多 1 题。间隔按做过的题和旅程计算，不要求连续几天来玩。</p></section></div>
-  <section class="guide-panel"><h2>${state.grade||1} 年级 · 探索记录</h2><table class="skill-table"><thead><tr><th scope="col">地点</th><th scope="col">独立 / 一起完成</th><th scope="col">练习信号</th></tr></thead><tbody>${levels().map(l=>`<tr><td>${String(l.id).padStart(2,'0')} ${l.title}${l.optional?' · 自选':''}</td><td>${state.stages[l.id]?.independent||0} / ${state.stages[l.id]?.supported||0}</td><td class="status-label">${t.status[stageStatus(state,l.id)]}</td></tr>`).join('')}</tbody></table></section>
-  <div class="guide-grid" style="margin-top:23px"><section class="guide-panel"><h2>只留在这里的小脚印</h2><p>无需账号，不输入孩子姓名或其他个人信息。没有外部统计或追踪。题目、插画和字体由游戏网站提供，音效在设备上合成。托管服务 GitHub Pages 会为安全目的记录访问者 IP。</p><p>进度只保存在<b>当前设备、当前浏览器、当前网址</b>里。电脑、手机、iPad 上界面都会适配，但<b>进度不会自动同步</b>。清除浏览器网站数据、隐私浏览结束或更换端口可能失去进度。</p><p>公开网址可直接分享给家长，无需电脑保持开机。没有自动跨设备同步。</p><p>更多设置中的“反馈与建议”可进入腾讯兔小巢。请家长协助留言，不填写孩子的姓名、学校或电话。反馈页面由腾讯提供，游戏不会自动传送本地存档或答题记录。</p></section><section class="guide-panel"><h2>舒适地玩</h2><p>保留当前设备的声音开关，新设备默认关闭。开启声音后，旅程中会播放轻柔的花园背景音乐。答对有星光短音，过关有庆祝乐句，施法和百宝箱有不同配乐。首次点击开启或进入游戏会启动手机音频；关掉后立即停止。请同时使用设备系统音量；浏览器无法可靠识别 iPad/iPhone 的硬件静音拨片。</p><div class="setting-row"><label for="guide-motion">画面动态</label>${motionSelect('guide-motion')}</div><p>减少动态会直接展示每种魔法的完整画面，奖励内容一样多。</p><p>中文为首个语言版本；代码预留语言字典。真实儿童试玩、实际 iPad/手机和声音听感尚未验证。</p></section></div><section class="reset-panel"><div><h3>重新开始一个花园</h3><p>会清除本游戏在这个浏览器里所有年级的卡片、练习记录和小游戏机会。不会影响其他网站。</p></div><button class="secondary danger" data-action="reset-dialog">${icon('reset')}重置本地进度</button></section>`;
+  return parentGuideMarkup({state,profile:activeCourse(),levels:levels()});
 }
 function motionSelect(id) {
   return `<select id="${id}" data-setting="motion" aria-label="画面动态">${[['system','跟随设备设置'],['reduce','减少动态'],['full','完整动态']].map(([v,name])=>`<option value="${v}" ${state.settings.motion===v?'selected':''}>${name}</option>`).join('')}</select>`;
@@ -321,7 +323,7 @@ function soundInvitation() {
 }
 function magicPage() {
   const l=level(magic.id),name=magic.completedRound?`点亮${l.title}！`:magic.finale?t.finale:l.cardName;
-  return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div><section class="magic-view ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?'我们点亮花园啦！':magic.paused?'等你准备好':'星光集合……'}</p></section>${magic.completedRound?roundSummaryMarkup(state.session)+coachingMarkup():''}<div class="magic-controls">${nextMagicAction()}${magic.finished?'':`<button class="secondary" data-action="magic-pause">${icon(magic.paused?'play':'pause')}${magic.paused?'继续':'暂停'}</button>`}<button class="secondary" data-action="nav" data-view="home">${icon('leaf')}回花园</button></div>`;
+  return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div>${magic.completedRound?'<div class="magic-result-scroll">':''}<section class="magic-view ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?'我们点亮花园啦！':magic.paused?'等你准备好':'星光集合……'}</p></section>${magic.completedRound?roundSummaryMarkup(state.session)+coachingMarkup()+'</div>':''}<div class="magic-controls">${nextMagicAction()}${!magic.finished&&magic.paused?`<button class="secondary" data-action="magic-pause">${icon('play')}继续动画</button>`:''}<button class="secondary" data-action="nav" data-view="home">${icon('leaf')}回花园</button></div>`;
 }
 function treasurePage() {
   return celebrationMarkup({...treasure,paused:treasure.paused||Boolean(modal)},{reduced:reduceMotion(),statistics:gardenSummaryMarkup(state),mini:miniShortcut()});
@@ -379,6 +381,7 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   if(!oldCharacter)stopCharacter();
   const keepScroll=preserveScroll&&document.body.dataset.view===view;
   const mainScroll=keepScroll?(document.querySelector('#main')?.scrollTop||0):0;
+  const magicScroll=keepScroll?(document.querySelector('.magic-result-scroll')?.scrollTop||0):0;
   const helpScroll=modal==='hint'?(document.querySelector('.help-content')?.scrollTop||0):0;
   const setupScroll=view==='setup'?(document.querySelector('.preparation-scroll')?.scrollTop||0):0;
   const problemScroll=keepScroll?(document.querySelector('.problem-card')?.scrollTop||0):0;
@@ -399,7 +402,7 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
     card.animate([before,{transform:getComputedStyle(card).transform,opacity:getComputedStyle(card).opacity}],{duration:650,easing:'cubic-bezier(.2,.65,.22,1)'});
    }
   }
-  if(keepScroll){document.querySelector('#main').scrollTop=mainScroll;const problem=document.querySelector('.problem-card');if(problem)problem.scrollTop=problemScroll;}
+  if(keepScroll){const result=document.querySelector('.magic-result-scroll');if(result)result.scrollTop=magicScroll;document.querySelector('#main').scrollTop=mainScroll;const problem=document.querySelector('.problem-card');if(problem)problem.scrollTop=problemScroll;}
   if(modal==='hint'&&document.querySelector('.help-content'))document.querySelector('.help-content').scrollTop=helpScroll;
   if(view==='setup'&&keepScroll)document.querySelector('.preparation-scroll').scrollTop=setupScroll;
   if(view==='mini')installMini();
@@ -442,11 +445,9 @@ function magicTick(now) {
   magic.frame=requestAnimationFrame(magicTick);
 }
 function updateMagicPause() {
-  const scene=document.querySelector('.magic-view');scene?.classList.toggle('paused',magic.paused);
-  const button=document.querySelector('[data-action="magic-pause"]');
-  if(button)button.innerHTML=`${icon(magic.paused?'play':'pause')}${magic.paused?t.continueMagic:t.stop}`;
-  const story=document.querySelector('.magic-story');if(story)story.textContent=magic.paused?'等你准备好':'你带来的魔法，让花园亮起来了。';
+  render();
 }
+
 function showRetryFeedback() {
   const problem=document.querySelector('.problem-card');
   problem?.classList.add('retry-feedback');
@@ -548,14 +549,16 @@ app.addEventListener('click',event=>{
   const button=event.target.closest('button[data-action]');if(!button||button.disabled)return;
   const action=button.dataset.action,id=Number(button.dataset.level);
   if(['textbook','phase','difficulty'].includes(action)){
+    coachingReceipt=null;
     const value=button.dataset.value;
     if(action==='textbook'&&TEXTBOOKS.some(t=>t.id===value))state.courseSettings.textbook=value;
     if(action==='phase'&&[1,2,3,4].includes(Number(value)))state.courseSettings.phase=Number(value);
     if(action==='difficulty'&&['easy','standard','challenge'].includes(value))state.difficulty=value;
     save();render({focusModal:true});document.querySelector(`[data-action="${action}"][data-value="${value}"]`)?.focus({preventScroll:true});return;
   }
-  if(action==='coaching-dismiss'){dismissSuggestion(state);save();render();return;}
-  if(action==='coaching-accept'){if(button.dataset.value===difficultySuggestion(state))state.difficulty=button.dataset.value;dismissSuggestion(state);save();render();return;}
+  if(action==='coaching-dismiss'){coachingReceipt=null;dismissSuggestion(state);save();render();notify(`保持${difficultyLabel()}，下一趟继续用这个难度。`);return;}
+  if(action==='coaching-accept'){const receipt=acceptDifficultySuggestion(state,button.dataset.value);if(!receipt)return;coachingReceipt={...receipt,saved:save()};render();document.querySelector('.coaching-receipt [role="status"]')?.focus({preventScroll:true});return;}
+  if(action==='coaching-undo'){const receipt=undoDifficultySuggestion(state,coachingReceipt);if(!receipt)return;coachingReceipt={...receipt,saved:save()};render();document.querySelector('.coaching-receipt [role="status"]')?.focus({preventScroll:true});return;}
   if(action.startsWith('hint-')){const q=currentQuestion(state);if(!q||modal!=='hint')return;const before=state.session.hintState?.step||0;markHint(state);handleHint(state.session,q,action,button.dataset.value);save();render();document.querySelector('.help-content')?.focus({preventScroll:true});if(action==='hint-answer'&&state.session.hintState.step>before)(document.querySelector('.helper-step')||document.querySelector('.helper-finished'))?.scrollIntoView({block:'nearest'});return;}
 
   if(action==='star-play-menu'){go('mini-menu');return;}
@@ -612,7 +615,7 @@ app.addEventListener('click',event=>{
   if(action==='next'){cardSelection=0;cardOrder=[];const result=advance(state);hintMode='';hintClosed=false;save();if(result.completed){creditRound();save();showRoundResult(result,state.session.levelId);}else{render({preserveScroll:false});document.querySelector('#problem-title')?.setAttribute('tabindex','-1');document.querySelector('#problem-title')?.focus({preventScroll:true});}return;}
   if(action==='cast'){startMagic(id);return;}
   if(action==='finale'){startMagic(8,true);return;}
-  if(action==='magic-pause'){magic.paused=!magic.paused;pauseScene(magic.paused);updateMagicPause();return;}
+  if(action==='magic-pause'&&magic.paused){magic.paused=false;pauseScene(false);updateMagicPause();document.querySelector('.magic-next')?.focus({preventScroll:true});return;}
     if(action==='treasure'){startTreasure();return;}
   if(action==='treasure-open'){openTreasure();return;}
   if(action==='treasure-reveal'){
