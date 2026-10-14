@@ -3,3 +3,5 @@
 .parent-guide-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.parent-guide-nav a{display:inline-flex;align-items:center;min-height:44px;padding:8px 13px;border:1px solid #a28ab5;border-radius:12px;color:#f5eaff;background:#40314fcc;text-decoration:none;font-size:14px}.parent-current{padding:20px}.guide-panel p{font-size:14px}.guide-footnote a{display:inline-flex;min-height:44px;align-items:center}#coverage-title,#parent-how{scroll-margin-top:16px}.coverage-scroll{overscroll-behavior-x:contain}
 
 .coverage-scroll{max-height:min(72dvh,760px)}.coverage-table thead th{position:sticky;top:0;z-index:2}.coverage-table thead th:first-child{z-index:3}
+
+body.reference-document{overflow:visible}
