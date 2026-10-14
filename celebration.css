@@ -57,6 +57,28 @@ body[data-view=treasure] .curtain-controls .primary{background:linear-gradient(1
 .curtain-aurora .curtain-stage{background-image:radial-gradient(ellipse at 50% 20%,#81d8c33b,transparent),linear-gradient(#1a354875,#251e40dd),url('./assets/magic-garden-v2.webp')}
 .curtain.paused .curtain-stage *{animation-play-state:paused!important}
 .curtain-still *{animation:none!important}
+/* Soft moving stage lights; the original face and costume stay above the beams. */
+.curtain-light-rig{position:absolute;inset:0;overflow:hidden;pointer-events:none;display:none;z-index:0}
+.curtain[data-celebration-phase=opening] .curtain-light-rig,.curtain[data-celebration-phase=dance] .curtain-light-rig{display:block}
+.curtain[data-celebration-phase=opening] .curtain-light-rig{animation:curtain-lights-on 1.5s both}
+.curtain[data-celebration-phase=dance] .curtain-dancer,.curtain[data-celebration-phase=opening] .curtain-dancer{z-index:2}
+.curtain[data-celebration-phase=dance] .curtain-stage{border-color:#e3b3f9aa;box-shadow:inset 0 0 70px #d29de22b,0 0 0 2px #a9dfe51a,0 12px 40px #1c0f3a55}
+.curtain-spot{--beam:#8be5e8;position:absolute;top:-8%;left:6%;width:35%;height:118%;background:linear-gradient(var(--beam),transparent 95%);opacity:.2;clip-path:polygon(48% 0,52% 0,100% 100%,0 100%);transform-origin:50% 0;filter:blur(2px);animation:curtain-spot-sweep 4s ease-in-out infinite alternate}
+.curtain-spot-1{--beam:#e6a1ef;left:28%;animation-delay:-1s;animation-duration:5s}
+.curtain-spot-2{--beam:#ffe5a1;left:48%;animation-delay:-2s;animation-duration:4s;animation-direction:alternate-reverse}
+.curtain-spot-3{--beam:#acaeff;left:65%;animation-delay:-3s;animation-duration:6s}
+.curtain-lamp{position:absolute;top:4%;left:22%;width:14px;height:6px;border-radius:50%;background:#b0f1ef;box-shadow:0 0 10px #a3e8e7,0 0 20px #a3e8e799}
+.curtain-lamp-1{left:44%;background:#f7bcf5;box-shadow:0 0 12px #efb4ef}.curtain-lamp-2{left:64%;background:#ffe8ac;box-shadow:0 0 12px #ffe8ac}.curtain-lamp-3{left:81%;background:#c7c6ff;box-shadow:0 0 12px #c7c6ff}
+.curtain-neon-arch{position:absolute;left:21%;right:21%;top:8%;bottom:14%;border:2px solid #e3aef078;border-radius:48% 48% 10% 10%;box-shadow:0 0 14px #d8a2ed55,inset 0 0 14px #d8a2ed22;animation:curtain-neon-color 4s ease-in-out infinite alternate}
+.curtain-neon-floor{position:absolute;left:10%;right:10%;bottom:6%;height:23%;border:2px solid #a0e8e3aa;border-radius:50%;box-shadow:0 0 17px #8cdfdf88,inset 0 0 18px #b2edef33;transform:rotate(-3deg)}
+.curtain-neon-floor:before{content:'';position:absolute;inset:13px 22px;border:1px solid #eec4f688;border-radius:50%;box-shadow:0 0 10px #e0a8ee77}
+.curtain-light-rail{position:absolute;bottom:3%;left:15%;right:15%;display:flex;justify-content:space-between;gap:10px}
+.curtain-light-rail b{width:14px;height:4px;border-radius:5px;background:#eec0f2;box-shadow:0 0 9px #edb8ef;animation:curtain-rail-wave 3s calc(var(--lamp)*-.22s) ease-in-out infinite alternate}
+.curtain-still .curtain-spot{transform:rotate(-8deg);opacity:.16}.curtain-still .curtain-spot-2{transform:rotate(12deg)}
+@keyframes curtain-spot-sweep{from{transform:rotate(-21deg)}to{transform:rotate(17deg)}}
+@keyframes curtain-neon-color{from{border-color:#e3aef078;box-shadow:0 0 12px #dc9eef55}to{border-color:#9de7e0aa;box-shadow:0 0 20px #9de7e055}}
+@keyframes curtain-rail-wave{from{background:#d7a7e5;box-shadow:0 0 7px #e5a4e877}to{background:#c7efed;box-shadow:0 0 13px #b0e9e599}}
+@keyframes curtain-lights-on{from{opacity:0}to{opacity:1}}
 @keyframes curtain-light{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
 @keyframes curtain-spark-in{0%{opacity:0;transform:translateY(30px) scale(.3)}60%{opacity:1;transform:translateY(-5px) scale(1.15)}100%{opacity:.7;transform:none}}
 @keyframes curtain-title-in{from{opacity:0;transform:translateY(15px) rotate(-9deg) scale(.8)}to{opacity:1;transform:rotate(-9deg)}}

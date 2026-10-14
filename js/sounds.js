@@ -17,16 +17,41 @@ export function getSoundScore(kind = 'correct') {
     ...pad(4.4,[60,64,67],1,.015)
   ];
   if(kind==='chest-glint')return [bell(0,76,.4,.065),bell(.15,79,.55,.06),bell(.3,84,.8,.05),noise('shimmer',.45,.7,.02,2300)];
-  if(kind==='dance'){
-    // Original 120 BPM miniature, 1.5s unveiling plus exactly 30s of dance.
-    // Three four-bar phrases vary the tune; the last six seconds form a cadence.
+  if(kind==='world-film'){
+    let start=0;const score=[];
+    for(const [color,duration] of [['joy',9],['brave',7.5],['cozy',7.5],['dream',7.5]]){
+      const phrase=getSoundScore('world-'+color);
+      for(let repeat=0;repeat<duration;repeat+=6)for(const event of phrase){
+        const at=repeat+event.at;if(at>=duration)continue;
+        score.push({...event,at:start+at,duration:Math.min(event.duration,duration-at)});
+      }
+      start+=duration;
+    }
+    return score;
+  }
+  if(['world-joy','world-brave','world-cozy','world-dream'].includes(kind)){
+    // Six-second phrases follow visible pictures; no long queue of audio nodes.
+    const colors={
+      'world-joy':{chords:[[60,64,67],[65,69,72],[67,71,74]],tune:[79,84,88,86,84,79]},
+      'world-brave':{chords:[[62,66,69],[59,62,66],[67,71,74]],tune:[74,78,81,86,81,78]},
+      'world-cozy':{chords:[[60,64,69],[57,60,64],[53,57,60]],tune:[76,81,79,76,72,69]},
+      'world-dream':{chords:[[65,69,72],[62,65,69],[67,71,74]],tune:[81,84,88,86,84,79]}
+    },color=colors[kind];
+    return color.chords.flatMap((chord,i)=>[
+      ...pad(i*2,chord,1.95,.013),tone('felt',i*2,color.tune[i*2],1.35,.052),
+      bell(i*2+1,color.tune[i*2+1],.9,.034),tone('bass',i*2,chord[0]-12,1.45,.018)
+    ]);
+  }
+  if(kind==='dance'||kind==='welcome-dance'){
+    // Original 120 BPM miniature: 10s welcome or 30s replay, plus 1.5s unveiling.
+    // Both versions end with a four-note cadence before the next scene.
     const tune=[76,79,84,79,81,79,76,72,74,77,81,77,79,76,74,72];
     const chords=[[60,64,67],[57,60,64],[53,57,60],[55,59,62]];
-    const opening=getSoundScore('chest-glint');
-    const beat=Array.from({length:60},(_,i)=>{
+    const opening=getSoundScore('chest-glint'),count=kind==='welcome-dance'?20:60;
+    const beat=Array.from({length:count},(_,i)=>{
       const at=1.5+i*.5,bar=Math.floor(i/4),chord=chords[Math.floor(i/4)%4],phrase=Math.floor(i/16);
-      const midi=i>=56?[79,76,74,72][i-56]:tune[i%16]+(phrase===1&&i%4===2?12:phrase===2&&i%4===3?-5:0);
-      return [tone('pluck',at,midi,.43,i>=56?.063:.058),tone('bass',at,chord[i%2===0?0:2]-12,.3,.032),
+      const midi=i>=count-4?[79,76,74,72][i-(count-4)]:tune[i%16]+(phrase===1&&i%4===2?12:phrase===2&&i%4===3?-5:0);
+      return [tone('pluck',at,midi,.43,i>=count-4?.063:.058),tone('bass',at,chord[i%2===0?0:2]-12,.3,.032),
        ...(i%4===0?pad(at,chord,1.85,.012):[]),
        {type:'kick',at,duration:.13,volume:i%4===0?.048:.025,fromFrequency:85,toFrequency:48},
        ...(i%2===1?[noise('clap',at,.085,.016,1300)]:[]),noise('shaker',at+.25,.06,.009,3400),

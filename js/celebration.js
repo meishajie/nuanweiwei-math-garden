@@ -1,17 +1,21 @@
-import {icon,emblem} from './art.js?v=20261014-2';
-import {companionMarkup} from './character-reactions.js?v=20261014-2';
-import {guardianBadgeMarkup,TREASURE_THEMES} from './adventure.js?v=20261014-2';
-import {galleryMarkup} from './album-gallery.js?v=20261014-2';
+import {icon,emblem} from './art.js?v=20261014-3';
+import {companionMarkup} from './character-reactions.js?v=20261014-3';
+import {guardianBadgeMarkup,TREASURE_THEMES} from './adventure.js?v=20261014-3';
+import {galleryMarkup} from './album-gallery.js?v=20261014-3';
+import {createWorld,advanceWorld,worldMarkup} from './expression-world.js?v=20261014-3';
 
-export const CONGRATS_MS=5500,OPENING_MS=1500,DANCE_MS=30000;
-export const celebrationActive=s=>['congrats','opening','dance'].includes(s.phase);
-export function createCelebration(){return {phase:'congrats',phaseElapsed:0,elapsed:0,opened:false,finished:false,paused:false,theme:'starlight',collection:false,last:0,frame:0};}
+export const CONGRATS_MS=5500,OPENING_MS=1500,DANCE_MS=30000,WELCOME_DANCE_MS=10000;
+export const celebrationActive=s=>['congrats','opening','dance','world'].includes(s.phase);
+export function createCelebration(){return {phase:'congrats',phaseElapsed:0,elapsed:0,opened:false,finished:false,paused:false,theme:'starlight',collection:false,danceOnly:false,world:createWorld(),last:0,frame:0};}
+function enterWorld(s,reduced=false){s.phase='world';s.phaseElapsed=0;s.world=createWorld();s.paused=reduced;s.finished=false;s.collection=false;s.last=0;}
 export function celebrationAction(s,action,{reduced=false}={}){
  if(action==='reveal'&&s.phase==='congrats'){s.phase='chest';s.phaseElapsed=0;s.paused=false;return true;}
- if((action==='open'&&s.phase==='chest')||(action==='replay'&&s.phase==='keepsake')){
-  s.opened=true;s.finished=reduced;s.phase=reduced?'keepsake':'opening';s.phaseElapsed=0;s.elapsed=0;s.paused=false;s.collection=false;s.last=0;return true;
+ if((action==='open'&&['congrats','chest'].includes(s.phase))||(action==='replay'&&s.phase==='keepsake')){
+  s.opened=true;s.finished=false;s.danceOnly=action==='replay';s.phase='opening';s.phaseElapsed=0;s.elapsed=0;s.paused=false;s.collection=false;s.last=0;
+  if(reduced)enterWorld(s,true);return true;
  }
- if(action==='skip'&&['opening','dance'].includes(s.phase)){s.phase='keepsake';s.finished=true;s.paused=false;s.phaseElapsed=0;s.collection=false;return true;}
+ if(action==='world'&&s.opened&&['opening','dance','world','keepsake'].includes(s.phase)){enterWorld(s,reduced);return true;}
+ if(action==='skip'&&['opening','dance','world'].includes(s.phase)){s.phase='keepsake';s.finished=true;s.paused=false;s.phaseElapsed=0;s.collection=false;return true;}
  return false;
 }
 // Only active foreground time advances. The unopened chest is an explicit gate.
@@ -20,9 +24,14 @@ export function advanceCelebration(s,delta){
  const before=s.phase;s.phaseElapsed+=delta;
  if(before==='congrats'){
   if(s.phaseElapsed>=CONGRATS_MS){s.phase='chest';s.phaseElapsed=0;}
+ }else if(before==='world'){
+  const changed=advanceWorld(s.world,delta);
+  if(s.world.finished){s.phase='keepsake';s.phaseElapsed=0;s.finished=true;}
+  return changed;
  }else{
-  s.elapsed=Math.min(OPENING_MS+DANCE_MS,s.elapsed+delta);
-  if(s.elapsed>=OPENING_MS+DANCE_MS){s.phase='keepsake';s.phaseElapsed=0;s.finished=true;}
+  const limit=s.danceOnly?DANCE_MS:WELCOME_DANCE_MS;
+  s.elapsed=Math.min(OPENING_MS+limit,s.elapsed+delta);
+  if(s.elapsed>=OPENING_MS+limit){if(s.danceOnly){s.phase='keepsake';s.phaseElapsed=0;s.finished=true;}else enterWorld(s);}
   else if(s.elapsed>=OPENING_MS){s.phase='dance';s.phaseElapsed=s.elapsed-OPENING_MS;}
  }
  return s.phase!==before;
@@ -66,18 +75,20 @@ export function applyDancePose(container,ms,{cheer=false,still=false}={}){
 const dancer=()=>`<div class="curtain-dancer">${companionMarkup({mode:'correct',kind:'reward',motion:'full',expression:'original'}).replace('viewBox="-50 -130 1544 1230"','viewBox="-150 -180 1744 1350"')}</div>`;
 const sparks=()=>Array.from({length:18},(_,i)=>`<i style="--i:${i};--x:${5+i*37%90}%;--y:${8+i*19%74}%;--delay:${(i%6)*.18}s" aria-hidden="true">${i%3?'✦':'✧'}</i>`).join('');
 const chest=()=>`<div class="curtain-chest" aria-hidden="true"><div class="curtain-chest-halo"></div><div class="curtain-chest-lid">${icon('spark')}</div><div class="curtain-chest-base"><span>${icon('star')}</span></div><div class="curtain-chest-light"></div></div>`;
+const lights=()=>`<div class="curtain-light-rig" aria-hidden="true">${[0,1,2,3].map(i=>`<i class="curtain-spot curtain-spot-${i}"></i><span class="curtain-lamp curtain-lamp-${i}"></span>`).join('')}<div class="curtain-neon-arch"></div><div class="curtain-neon-floor"></div><div class="curtain-light-rail">${Array.from({length:9},(_,i)=>`<b style="--lamp:${i}"></b>`).join('')}</div></div>`;
 export function celebrationMarkup(s,{statistics='',mini='',reduced=false}={}){
+ if(s.phase==='world')return worldMarkup(s.world,{paused:s.paused,reduced});
  const phase=s.phase||'congrats',done=phase==='keepsake',active=phase==='dance'||phase==='opening';
  const theme=Object.hasOwn(TREASURE_THEMES,s.theme)?s.theme:'starlight';
  const title=phase==='congrats'?'10关全通关啦！':phase==='chest'?'有个惊喜送给你':phase==='opening'?'惊喜，打开啦！':phase==='dance'?'这支舞，送给你！':'花园守护者，就是你！';
- const subtitle=phase==='congrats'?'看，我们的花园全亮啦！':phase==='chest'?'谢谢你，一次次认真想办法。':phase==='opening'?'星光正在变成舞台……':phase==='dance'?'暖尾尾和你一起庆祝。':'10张卡，记着你每一次努力。';
+ const subtitle=phase==='congrats'?'看，我们的花园全亮啦！':phase==='chest'?'谢谢你，一次次认真想办法。':phase==='opening'?'星光正在打开一扇门……':phase==='dance'?s.danceOnly?'暖尾尾和你一起庆祝。':'再跳一小会儿，带你去表情世界。':'10张卡，记着你每一次努力。';
  return `<section class="curtain curtain-${theme} ${s.paused?'paused':''}" data-celebration-phase="${phase}" aria-labelledby="curtain-title">
   <header class="curtain-heading"><p class="curtain-kicker">${done?'属于你们的礼物':'你和暖尾尾的闪亮时刻'}</p><h1 id="curtain-title">${title}</h1><p>${subtitle}</p></header>
   <div class="curtain-stage ${reduced?'curtain-still':''}" aria-label="${done?'暖尾尾送给你的花园守护者纪念章':active?'暖尾尾挥手、拍手、踏步、跳跃和鞠躬的星光舞台':phase==='congrats'?'十张魔法卡汇成星光，庆祝你点亮花园':'等待你亲手打开的百宝箱'}">
-   <div class="curtain-aurora-rays" aria-hidden="true"></div><div class="curtain-sparks" aria-hidden="true">${sparks()}</div><div class="curtain-floor" aria-hidden="true"></div>
-   ${phase==='congrats'?`<div class="curtain-card-ring" aria-hidden="true">${Array.from({length:10},(_,i)=>`<span style="--card:${i}">${emblem(i+1)}</span>`).join('')}</div><div class="curtain-success" aria-hidden="true">10 <span>✓</span></div>${dancer()}`:done?`<div class="curtain-keepsake">${guardianBadgeMarkup()}<p>谢谢你，魔法伙伴！</p></div>`:phase==='chest'?`${chest()}<p class="curtain-chest-whisper">里面会是什么呢？</p>`:`${chest()}${dancer()}<div class="curtain-notes" aria-hidden="true"><span>♫</span><span>♪</span></div>`}
+   <div class="curtain-aurora-rays" aria-hidden="true"></div>${lights()}<div class="curtain-sparks" aria-hidden="true">${sparks()}</div><div class="curtain-floor" aria-hidden="true"></div>
+   ${phase==='congrats'?`<div class="curtain-card-ring" aria-hidden="true">${Array.from({length:10},(_,i)=>`<span style="--card:${i}">${emblem(i+1)}</span>`).join('')}</div>${chest()}`:done?`<div class="curtain-keepsake">${guardianBadgeMarkup()}<p>谢谢你，魔法伙伴！</p></div>`:phase==='chest'?`${chest()}<p class="curtain-chest-whisper">里面会是什么呢？</p>`:`${chest()}${dancer()}<div class="curtain-notes" aria-hidden="true"><span>♫</span><span>♪</span></div>`}
   </div>
-  <div class="curtain-controls">${phase==='congrats'?`<button class="primary" data-action="treasure-reveal">看看惊喜${icon('arrow')}</button>`:phase==='chest'?`<button class="primary curtain-open" data-action="treasure-open">打开百宝箱${icon('chest')}</button>`:active?`<button class="secondary" data-action="treasure-pause" aria-pressed="${s.paused}">${icon(s.paused?'play':'pause')}${s.paused?'接着跳':'暂停一下'}</button><button class="primary" data-action="treasure-skip">收好惊喜${icon('check')}</button>`:`<button class="primary" data-action="treasure-collection" aria-expanded="${s.collection}">${s.collection?'收起收藏':'看看我的收藏'}${icon('chest')}</button><button class="secondary" data-action="nav" data-view="home">回花园${icon('leaf')}</button>`}</div>
-  ${!done?`<p class="curtain-caption">${phase==='congrats'?'你做到了！为自己拍拍手吧。':phase==='chest'?'准备好了，就亲手打开吧。':s.paused?'停在这里，等你准备好。':'可以随时收好，惊喜都会留下。'}</p><button class="text-button curtain-leave" data-action="nav" data-view="home">回花园</button>`:`<details class="curtain-more"><summary>更多惊喜</summary><button class="text-button" data-action="treasure-replay">${icon('play')}再看一次星光舞</button><div class="curtain-themes" role="group" aria-label="换一片天空">${Object.entries(TREASURE_THEMES).map(([key,item])=>`<button class="secondary" data-action="treasure-theme" data-theme="${key}" aria-pressed="${key===theme}">${item.name}</button>`).join('')}</div>${mini}<details class="curtain-records"><summary>看看这一程的小脚印</summary>${statistics}</details></details>${s.collection?galleryMarkup():''}`}
+  <div class="curtain-controls">${phase==='congrats'?`<button class="primary curtain-open" data-action="treasure-open">打开百宝箱${icon('chest')}</button>`:phase==='chest'?`<button class="primary curtain-open" data-action="treasure-open">打开百宝箱${icon('chest')}</button>`:active?`<button class="secondary" data-action="treasure-pause" aria-pressed="${s.paused}">${icon(s.paused?'play':'pause')}${s.paused?'接着跳':'暂停一下'}</button><button class="primary" data-action="${s.danceOnly?'treasure-skip':'treasure-world'}">${s.danceOnly?'收好惊喜':'去表情世界'}${icon(s.danceOnly?'check':'arrow')}</button>`:`<button class="primary" data-action="treasure-world">再逛表情世界${icon('spark')}</button><button class="secondary" data-action="treasure-collection" aria-expanded="${s.collection}">${s.collection?'收起收藏':'看看我的收藏'}${icon('chest')}</button><button class="secondary" data-action="nav" data-view="home">回花园${icon('leaf')}</button>`}</div>
+  ${!done?`<p class="curtain-caption">${phase==='congrats'?'你的努力，变成一份惊喜。':phase==='chest'?'准备好了，就亲手打开吧。':s.paused?'停在这里，等你准备好。':'可以随时收好，惊喜都会留下。'}</p><button class="text-button curtain-leave" data-action="nav" data-view="home">回花园</button>`:`<details class="curtain-more"><summary>更多惊喜</summary><button class="text-button" data-action="treasure-replay">${icon('play')}再看一次星光舞</button><div class="curtain-themes" role="group" aria-label="换一片天空">${Object.entries(TREASURE_THEMES).map(([key,item])=>`<button class="secondary" data-action="treasure-theme" data-theme="${key}" aria-pressed="${key===theme}">${item.name}</button>`).join('')}</div>${mini}<details class="curtain-records"><summary>看看这一程的小脚印</summary>${statistics}</details></details>${s.collection?galleryMarkup():''}`}
  </section>`;
 }

@@ -1,23 +1,24 @@
-import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-2';
-import {restartProgress,persistRestart} from './restart.js?v=20261014-2';
-import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261014-2';
-import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-2';
-import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-2';
-import { getLevels, difficultyRange } from './curriculum.js?v=20261014-2';
-import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261014-2';
-import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261014-2';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261014-2';
-import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-2';
-import {columnMethod} from './column-method.js?v=20261014-2';
-import { t, locale } from './i18n.js?v=20261014-2';
-import { icon, emblem, magicArt } from './art.js?v=20261014-2';
-import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261014-2';
-import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-2';
-import { createEffects } from './effects.js?v=20261014-2';
-import { createSoundPlayer } from './sounds.js?v=20261014-2';
-import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261014-2';
-import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261014-2';
-import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261014-2';
+import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-3';
+import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-3';
+import {restartProgress,persistRestart} from './restart.js?v=20261014-3';
+import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261014-3';
+import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-3';
+import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-3';
+import { getLevels, difficultyRange } from './curriculum.js?v=20261014-3';
+import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261014-3';
+import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261014-3';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261014-3';
+import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-3';
+import {columnMethod} from './column-method.js?v=20261014-3';
+import { t, locale } from './i18n.js?v=20261014-3';
+import { icon, emblem, magicArt } from './art.js?v=20261014-3';
+import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261014-3';
+import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-3';
+import { createEffects } from './effects.js?v=20261014-3';
+import { createSoundPlayer } from './sounds.js?v=20261014-3';
+import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261014-3';
+import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261014-3';
+import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261014-3';
 
 const STORAGE_KEY = 'nuanweiwei.math-garden.v1';
 const PROFILE_KEY = 'nuanweiwei.math-garden.profiles.v3';
@@ -59,6 +60,7 @@ let cardVisualKey='';
 let cardVisualOrder=[];
 let soundUnavailable = false;
 let treasure = createCelebration();
+let worldMusicRunning=false,worldSoundTicket=0;
 let magic = {id:1,finale:false,paused:false,finished:false,elapsed:0,last:0,frame:0};
 let characterController=null;
 let characterQuestionKey='';
@@ -93,9 +95,9 @@ function updateAudioDisplay(){
 }
 function maintainMusic(){
   sounds.setEnabled(state.settings.sound,{unlock:false});
-  if(!state.settings.sound)return;
+  if(!state.settings.sound){worldMusicRunning=false;return;}
   const paused=document.hidden||view==='rest'||(view==='magic'&&magic.paused)||(view==='treasure'&&(treasure.paused||Boolean(modal)));
-  if(paused){sounds.pause();return;}
+  if(paused){worldMusicRunning=false;sounds.pause();return;}
   if(view==='treasure'&&celebrationActive(treasure)){sounds.resume({unlock:false});sounds.stopMusic();return;}
   sounds.resume({unlock:false});sounds.setMusicLevel(['reward','magic','treasure'].includes(view) ? 0.4 : modal ? 0.6 : 1);
   void sounds.startMusic({unlock:false}).then(updateAudioDisplay);
@@ -128,7 +130,7 @@ function installCharacter(key,oldElement){
   if(modal||document.hidden)characterController.pause();else characterController.resume();
 }
 function stopMagic() { cancelAnimationFrame(magic.frame); magic.frame = 0; }
-function stopTreasure() { cancelAnimationFrame(treasure.frame); treasure.frame=0; }
+function stopTreasure() { cancelAnimationFrame(treasure.frame); treasure.frame=0;worldMusicRunning=false;worldSoundTicket++; }
 function go(next) {
   if(view==='mini'&&next!=='mini'){stopMini();rewards=finishPlay(rewards,Date.now(),'left');save();}
   clearTimeout(completionTimer);completionTimer=0;
@@ -322,7 +324,7 @@ function treasurePage() {
 }
 function modalView() {
  if(!modal)return '';
- if(modal==='album')return albumDetailMarkup(selectedAlbum);
+ if(modal==='album')return albumDetailMarkup(selectedAlbum,{cinema:view==='treasure'&&treasure.phase==='world'});
  let title='',content='',actions='';
  const close=(label='好了')=>`<button class="primary" data-action="close-dialog">${label}${icon('check')}</button>`;
  if(modal==='hint'){
@@ -376,13 +378,20 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   // Settings update the DOM. Preserve the visual timeline independently of
   // that render, including while a child has explicitly paused the scene.
   const oldScene=preserveMagic&&['magic','treasure'].includes(view)?document.querySelector(view==='magic'?'.magic-view':'.curtain'):null;
+  const worldCards=view==='treasure'&&treasure.phase==='world'&&!reduceMotion()?new Map([...document.querySelectorAll('[data-world-card]')].map(e=>[e.dataset.worldCard,{transform:getComputedStyle(e).transform,opacity:getComputedStyle(e).opacity}])):null;
   const times=oldScene?.getAnimations?.({subtree:true}).map(a=>a.currentTime) || [];
   applyMotion(); document.documentElement.lang=locale;
   document.body.dataset.view=view;
   const pages={home,vault,intro,lesson,reward,rest,grownups,magic:magicPage,treasure:treasurePage,'mini-menu':miniMenu,mini:()=>starPlayMarkup(rewards.active),'mini-end':()=>starPlayEndMarkup(rewards.lastPlay)};
   app.innerHTML=`<div class="shell">${header()}${storageIssue?`<div class="storage-warning" role="status">${storageIssue}</div>`:''}<main id="main" tabindex="-1">${(pages[view]||home)()}</main>${footer()}</div>${modalView()}`;
-  if(times.length)document.querySelector(view==='magic'?'.magic-view':'.curtain')?.getAnimations?.({subtree:true}).forEach((animation,i)=>{if(times[i]!==undefined&&times[i]!==null)animation.currentTime=times[i];});
-  if(view==='treasure')poseCelebration();
+  if(times.length)document.querySelector(view==='magic'?'.magic-view':'.curtain,.expression-world')?.getAnimations?.({subtree:true}).forEach((animation,i)=>{if(times[i]!==undefined&&times[i]!==null)animation.currentTime=times[i];});
+  if(view==='treasure'){
+   poseCelebration();installExpressionWorld();
+   if(worldCards?.size&&!preserveMagic&&!treasure.paused&&!reduceMotion())for(const card of document.querySelectorAll('[data-world-card]')){
+    const before=worldCards.get(card.dataset.worldCard);if(!before||!card.animate)continue;
+    card.animate([before,{transform:getComputedStyle(card).transform,opacity:getComputedStyle(card).opacity}],{duration:650,easing:'cubic-bezier(.2,.65,.22,1)'});
+   }
+  }
   if(keepScroll){document.querySelector('#main').scrollTop=mainScroll;const problem=document.querySelector('.problem-card');if(problem)problem.scrollTop=problemScroll;}
   if(view==='mini')installMini();
   if(view==='lesson')installCharacter(characterKey,oldCharacter);
@@ -390,7 +399,7 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   maintainMusic();
 }
 function openModal(name) {sounds.stopEffects();effects.pause();miniController?.pause();if(!modal)modalReturnFocus=document.activeElement?.getAttribute('data-action');modal=name;render({focusModal:true});}
-function closeModal() {if(view==='lesson'&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();miniController?.resume();const wasAlbum=modal==='album';modal='';if(!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused))){pauseScene(false);}render();if(wasAlbum)document.querySelector(`[data-action="album-open"][data-album="${albumReturnId||selectedAlbum}"]`)?.focus();else (document.querySelector(`[data-action="${modalReturnFocus}"]`)||document.querySelector('[data-action="settings"]'))?.focus();}
+function closeModal() {if(view==='lesson'&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();miniController?.resume();const wasAlbum=modal==='album';modal='';if(!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused))){pauseScene(false);}render();if(wasAlbum&&view==='treasure'&&treasure.phase==='world')document.querySelector('[data-action="world-pause"]')?.focus();else if(wasAlbum)document.querySelector(`[data-action="album-open"][data-album="${albumReturnId||selectedAlbum}"]`)?.focus();else (document.querySelector(`[data-action="${modalReturnFocus}"]`)||document.querySelector('[data-action="settings"]'))?.focus();}
 function enterImmersivePlay(){
  const pending=requestImmersive();
  void pending.then(status=>{if(!status.immersive&&status.platform==='ios'&&!immersiveTipShown){immersiveTipShown=true;notify('想隐藏浏览器栏，可在小设置中添加主屏幕入口。');}});
@@ -446,13 +455,34 @@ async function toggleSound() {
   render();if(refocusSound)(document.querySelector('.modal [data-action="sound"]')||document.querySelector('[data-action="sound"]'))?.focus({preventScroll:true});
 }
 function poseCelebration(){
+ if(treasure.phase==='world'){document.querySelector('.expression-world')?.style.setProperty('--world-progress',String(treasure.world.slideElapsed/WORLD_SLIDE_MS));return;}
  const ms=treasure.phase==='congrats'?treasure.phaseElapsed:Math.max(0,treasure.elapsed-1500);
  applyDancePose(document.querySelector('.curtain'),ms,{cheer:treasure.phase==='congrats',still:reduceMotion()});
 }
 function playCelebrationSound(){
- if(!celebrationActive(treasure)||treasure.paused||modal||document.hidden)return;
+ if(!state.settings.sound||!celebrationActive(treasure)||treasure.paused||modal||document.hidden)return;
+ if(treasure.phase==='world'&&!treasure.world.ready)return;
+ if(treasure.phase==='world'&&worldMusicRunning)return;
  sounds.resume({unlock:false});sounds.stopMusic();
- void sounds.play(treasure.phase==='congrats'?'victory':'dance',{offset:(treasure.phase==='congrats'?treasure.phaseElapsed:treasure.elapsed)/1000});
+ const kind=treasure.phase==='world'?'world-film':treasure.phase==='congrats'?'victory':treasure.danceOnly?'dance':'welcome-dance';
+ const elapsed=treasure.phase==='world'?treasure.world.index*WORLD_SLIDE_MS+treasure.world.slideElapsed:treasure.phase==='congrats'?treasure.phaseElapsed:treasure.elapsed;
+ if(treasure.phase==='world'){worldMusicRunning=true;const ticket=++worldSoundTicket;void sounds.play(kind,{offset:elapsed/1000}).then(ok=>{if(!ok&&ticket===worldSoundTicket)worldMusicRunning=false;});}
+ else void sounds.play(kind,{offset:elapsed/1000});
+}
+function installExpressionWorld(){
+ if(view!=='treasure'||treasure.phase!=='world')return;
+ const image=document.querySelector('[data-world-full]');if(!image)return;
+ const loaded=ok=>{
+  if(view!=='treasure'||treasure.phase!=='world'||document.querySelector('[data-world-full]')!==image)return;
+  const changed=loadWorldImage(treasure.world,image.dataset.worldFull,ok),root=document.querySelector('.expression-world');
+  if(!ok){worldMusicRunning=false;worldSoundTicket++;sounds.stopEffects();}
+  root.dataset.worldLoaded=ok?'ready':'error';
+  const status=root.querySelector('.world-loading');status.textContent=ok?'':'这张图还没来，试试下一张吧。';
+  if(changed&&ok)playCelebrationSound();
+ };
+ if(image.complete){loaded(image.naturalWidth>0);return;}
+ treasure.world.ready=false;worldMusicRunning=false;worldSoundTicket++;sounds.stopEffects();
+ image.addEventListener('load',()=>loaded(true),{once:true});image.addEventListener('error',()=>loaded(false),{once:true});
 }
 function runCelebration(){
  if(view!=='treasure'||!celebrationActive(treasure)||treasure.paused||treasure.frame)return;
@@ -474,11 +504,14 @@ function treasureTick(now) {
  if(view!=='treasure'||!celebrationActive(treasure)||treasure.paused)return;
  const delta=treasure.last?Math.max(0,now-treasure.last):0;treasure.last=now;
  if(!document.hidden&&!modal){
-  const changed=advanceCelebration(treasure,delta);
+  const beforePhase=treasure.phase,changed=advanceCelebration(treasure,delta);
   if(changed){
-   if(!celebrationActive(treasure))sounds.stopEffects();
+   if(beforePhase!=='world'||treasure.phase!=='world'){worldMusicRunning=false;worldSoundTicket++;sounds.stopEffects();}
+   const focusedAction=document.activeElement?.getAttribute('data-action');
    render({preserveMagic:false});
+   if(celebrationActive(treasure)&&treasure.phase!=='world')playCelebrationSound();
    if(treasure.phase==='chest')document.querySelector('[data-action="treasure-open"]')?.focus({preventScroll:true});
+   else if(focusedAction)document.querySelector(`[data-action="${focusedAction}"]`)?.focus({preventScroll:true});
   }else if(!reduceMotion())poseCelebration();
  }
  if(celebrationActive(treasure))treasure.frame=requestAnimationFrame(treasureTick);
@@ -521,7 +554,7 @@ app.addEventListener('click',event=>{
   if(action==='fullscreen'){void toggleFullscreen().then(status=>{if(!status.fullscreen&&!status.standalone){if(status.platform==='ios')openModal('app-help');else notify(getInstallHint());}});return;}
   if(action==='app-help'){openModal('app-help');return;}
   if(action==='settings'){openModal('settings');return;}
-  if(action==='album-open'){if(view!=='treasure'||!treasure.opened||!hasTreasure()||!getAlbum(button.dataset.album))return;if(modal!=='album')albumReturnId=button.dataset.album;selectedAlbum=button.dataset.album;openModal('album');return;}
+  if(action==='album-open'){if(view!=='treasure'||!treasure.opened||!hasTreasure()||!getAlbum(button.dataset.album))return;if(treasure.phase==='world'){treasure.paused=true;stopTreasure();sounds.pause();if(worldScene(treasure.world).id!==button.dataset.album)worldAction(treasure.world,'select',button.dataset.album);}if(modal!=='album')albumReturnId=button.dataset.album;selectedAlbum=button.dataset.album;openModal('album');return;}
   if(action==='close-dialog'){closeModal();return;}
   if(action==='sound'){void toggleSound();return;}
   if(action==='card-remove'){const q=currentQuestion(state),index=Number(button.dataset.card);if(q?.kind!=='cards'||state.session.feedback?.correct)return;cardSelection&=~(1<<index);cardOrder=cardOrder.filter(i=>i!==index);render();document.querySelector(`[data-action="card-select"][data-card="${index}"]`)?.focus({preventScroll:true});return;}
@@ -562,6 +595,16 @@ app.addEventListener('click',event=>{
    if(celebrationAction(treasure,'reveal')){stopTreasure();sounds.stopEffects();render({preserveMagic:false});document.querySelector('[data-action="treasure-open"]')?.focus({preventScroll:true});}return;
   }
   if(action==='treasure-pause'){pauseCelebration(!treasure.paused);return;}
+  if(action==='treasure-world'){
+   if(!hasTreasure()||!celebrationAction(treasure,'world',{reduced:reduceMotion()}))return;
+   stopTreasure();sounds.stopEffects();effects.stop();render({preserveMagic:false});runCelebration();return;
+  }
+  if(action==='world-pause'&&view==='treasure'&&treasure.phase==='world'){pauseCelebration(!treasure.paused);document.querySelector('[data-action="world-pause"]')?.focus({preventScroll:true});return;}
+  if(['world-previous','world-next','world-retry'].includes(action)&&view==='treasure'&&treasure.phase==='world'){
+   treasure.paused=true;stopTreasure();sounds.pause();worldAction(treasure.world,action.slice(6));
+   if(treasure.world.finished){treasure.phase='keepsake';treasure.finished=true;treasure.paused=false;}
+   render({preserveMagic:false});document.querySelector(`[data-action="${treasure.phase==='world'?action:'treasure-world'}"]`)?.focus({preventScroll:true});return;
+  }
   if(action==='treasure-skip'){
    if(celebrationAction(treasure,'skip')){stopTreasure();sounds.stopEffects();effects.stop();render({preserveMagic:false});}return;
   }
@@ -587,7 +630,7 @@ app.addEventListener('change',event=>{
   if(event.target.dataset.setting==='difficulty'&&['easy','standard','challenge'].includes(event.target.value)){state.difficulty=event.target.value;save();render({focusModal:true});document.getElementById('garden-difficulty')?.focus();return;}
   if(event.target.dataset.setting==='motion'){
     state.settings.motion=event.target.value;save();applyMotion();const focused=event.target.id;
-    if(reduceMotion()){effects.stop();if(view==='treasure'&&['opening','dance'].includes(treasure.phase)){celebrationAction(treasure,'skip');stopTreasure();sounds.stopEffects();}}
+    if(reduceMotion()){effects.stop();if(view==='treasure'&&['opening','dance','world'].includes(treasure.phase)){if(treasure.phase!=='world')celebrationAction(treasure,'world',{reduced:true});treasure.paused=true;stopTreasure();sounds.stopEffects();}}
     if(view==='magic'){if(reduceMotion()){stopMagic();magic.finished=true;}else if(!magic.finished&&!magic.frame)magic.frame=requestAnimationFrame(magicTick);}
     render();document.getElementById(focused)?.focus();
   }
@@ -606,6 +649,6 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('pageshow',event=>{if(event.persisted){render({preserveMagic:false});}});
 window.addEventListener('pagehide',()=>{clearTimeout(completionTimer);completionTimer=0;stopCharacter();stopTreasure();if(view==='treasure'&&celebrationActive(treasure))treasure.paused=true;miniController?.destroy();miniController=null;save();effects.stop();sounds.stop();});
-systemMotion.addEventListener('change',()=>{applyMotion();characterController?.setMotion(()=>reduceMotion()?'reduce':'full');if(reduceMotion()){effects.stop();if(view==='treasure'&&['opening','dance'].includes(treasure.phase)){celebrationAction(treasure,'skip');stopTreasure();sounds.stopEffects();render();}}if(view==='magic'&&reduceMotion()){stopMagic();magic.finished=true;render();}});
+systemMotion.addEventListener('change',()=>{applyMotion();characterController?.setMotion(()=>reduceMotion()?'reduce':'full');if(reduceMotion()){effects.stop();if(view==='treasure'&&['opening','dance','world'].includes(treasure.phase)){if(treasure.phase!=='world')celebrationAction(treasure,'world',{reduced:true});treasure.paused=true;stopTreasure();sounds.stopEffects();render();}}if(view==='magic'&&reduceMotion()){stopMagic();magic.finished=true;render();}});
 save();
 render();

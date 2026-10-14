@@ -1,4 +1,4 @@
-import { icon } from './art.js?v=20261014-2';
+import { icon } from './art.js?v=20261014-3';
 
 // Trusted local artwork only. Gallery identifiers cannot become paths or URLs.
 export const ALBUM_COVERS = Object.freeze([
@@ -7,7 +7,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾接得住",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-01-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-01-v02-full.png",
     "full": "./assets/album-covers/nw-growth-01-v02-full.png",
     "width": 960,
     "height": 960,
@@ -19,7 +19,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾乐一下",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-02-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-02-v02-full.png",
     "full": "./assets/album-covers/nw-growth-02-v02-full.png",
     "width": 960,
     "height": 960,
@@ -31,7 +31,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾想明白",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-03-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-03-v02-full.png",
     "full": "./assets/album-covers/nw-growth-03-v02-full.png",
     "width": 960,
     "height": 960,
@@ -43,7 +43,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾缓一缓",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-04-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-04-v02-full.png",
     "full": "./assets/album-covers/nw-growth-04-v02-full.png",
     "width": 960,
     "height": 960,
@@ -55,7 +55,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾认真一下",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-05-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-05-v02-full.png",
     "full": "./assets/album-covers/nw-growth-05-v02-full.png",
     "width": 960,
     "height": 960,
@@ -67,7 +67,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾有点皮",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-06-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-06-v02-full.png",
     "full": "./assets/album-covers/nw-growth-06-v02-full.png",
     "width": 960,
     "height": 960,
@@ -79,7 +79,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾陪着你",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-07-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-07-v02-full.png",
     "full": "./assets/album-covers/nw-growth-07-v02-full.png",
     "width": 960,
     "height": 960,
@@ -91,7 +91,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾有主意",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-08-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-08-v02-full.png",
     "full": "./assets/album-covers/nw-growth-08-v02-full.png",
     "width": 960,
     "height": 960,
@@ -103,7 +103,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾小满足",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-09-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-09-v02-full.png",
     "full": "./assets/album-covers/nw-growth-09-v02-full.png",
     "width": 960,
     "height": 960,
@@ -115,7 +115,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾见面啦",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-10-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-10-v02-full.png",
     "full": "./assets/album-covers/nw-growth-10-v02-full.png",
     "width": 960,
     "height": 960,
@@ -127,7 +127,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾说好啦",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-11-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-11-v02-full.png",
     "full": "./assets/album-covers/nw-growth-11-v02-full.png",
     "width": 960,
     "height": 960,
@@ -139,7 +139,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾谢谢你",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-growth-12-v02-thumb.png",
+    "thumb": "./assets/album-covers/nw-growth-12-v02-full.png",
     "full": "./assets/album-covers/nw-growth-12-v02-full.png",
     "width": 960,
     "height": 960,
@@ -151,7 +151,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾暖心四连",
     "version": "v01",
     "status": "submitted",
-    "thumb": "./assets/album-covers/warm-cheers-v01-thumb.png",
+    "thumb": "./assets/album-covers/warm-cheers-v01-full.png",
     "full": "./assets/album-covers/warm-cheers-v01-full.png",
     "width": 240,
     "height": 240,
@@ -163,7 +163,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾装乖日常",
     "version": "v07",
     "status": "submitted",
-    "thumb": "./assets/album-covers/nw-comedy-01-v07-thumb.png",
+    "thumb": "./assets/album-covers/nw-comedy-01-v07-full.png",
     "full": "./assets/album-covers/nw-comedy-01-v07-full.png",
     "width": 960,
     "height": 960,
@@ -175,7 +175,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "马尾小姑娘有回应",
     "version": "v01",
     "status": "submission-candidate",
-    "thumb": "./assets/album-covers/everyday-parent-replies-v01-thumb.png",
+    "thumb": "./assets/album-covers/everyday-parent-replies-v01-full.png",
     "full": "./assets/album-covers/everyday-parent-replies-v01-full.png",
     "width": 960,
     "height": 960,
@@ -187,7 +187,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾·家里见",
     "version": "v01",
     "status": "submission-candidate",
-    "thumb": "./assets/album-covers/home-together-v01-thumb.png",
+    "thumb": "./assets/album-covers/home-together-v01-full.png",
     "full": "./assets/album-covers/home-together-v01-full.png",
     "width": 960,
     "height": 960,
@@ -199,7 +199,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾·小火苗在线",
     "version": "v01",
     "status": "submission-candidate",
-    "thumb": "./assets/album-covers/little-flame-online-v01-thumb.png",
+    "thumb": "./assets/album-covers/little-flame-online-v01-full.png",
     "full": "./assets/album-covers/little-flame-online-v01-full.png",
     "width": 960,
     "height": 960,
@@ -211,7 +211,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾·小大人开工了",
     "version": "v02",
     "status": "submission-candidate",
-    "thumb": "./assets/album-covers/little-grownup-at-work-v02-thumb.png",
+    "thumb": "./assets/album-covers/little-grownup-at-work-v02-full.png",
     "full": "./assets/album-covers/little-grownup-at-work-v02-full.png",
     "width": 960,
     "height": 960,
@@ -223,7 +223,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾·爸妈有话说",
     "version": "v01",
     "status": "submission-candidate",
-    "thumb": "./assets/album-covers/parent-talk-daily-v01-thumb.png",
+    "thumb": "./assets/album-covers/parent-talk-daily-v01-full.png",
     "full": "./assets/album-covers/parent-talk-daily-v01-full.png",
     "width": 960,
     "height": 960,
@@ -235,7 +235,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾·马尾有话说",
     "version": "v01",
     "status": "submission-candidate",
-    "thumb": "./assets/album-covers/pony-speaks-dynamic-v01-thumb.png",
+    "thumb": "./assets/album-covers/pony-speaks-dynamic-v01-full.png",
     "full": "./assets/album-covers/pony-speaks-dynamic-v01-full.png",
     "width": 960,
     "height": 960,
@@ -247,7 +247,7 @@ export const ALBUM_COVERS = Object.freeze([
     "title": "暖尾尾臭臭剧场",
     "version": "v02",
     "status": "submitted",
-    "thumb": "./assets/album-covers/stinky-theater-v02-thumb.png",
+    "thumb": "./assets/album-covers/stinky-theater-v02-full.png",
     "full": "./assets/album-covers/stinky-theater-v02-full.png",
     "width": 960,
     "height": 960,
@@ -271,16 +271,16 @@ export function galleryMarkup() {
 }
 
 // Return a complete modal so the application can own focus, Escape, and pause.
-export function albumDetailMarkup(id) {
+export function albumDetailMarkup(id,{cinema=false}={}) {
   const album = getAlbum(id);
   if (!album) return '';
   const index = ALBUM_COVERS.indexOf(album);
   const previous = ALBUM_COVERS[(index + ALBUM_COVERS.length - 1) % ALBUM_COVERS.length];
   const next = ALBUM_COVERS[(index + 1) % ALBUM_COVERS.length];
   return `<div class="modal-backdrop album-modal-backdrop"><section class="modal album-modal" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-    <button class="modal-close album-detail-close" data-action="close-dialog" aria-label="关闭大图，回到全部封面">${icon('close')}</button>
-    <div class="album-detail-heading"><p class="album-gallery-kicker">暖尾尾的表情百宝册 · ${index + 1} / ${ALBUM_COVERS.length}</p><h2 id="dialog-title">${escape(album.title)}</h2></div>
+    <button class="modal-close album-detail-close" data-action="close-dialog" aria-label="${cinema?'关闭大图，回到表情世界':'关闭大图，回到全部封面'}">${icon('close')}</button>
+    <div class="album-detail-heading"><p class="album-gallery-kicker">${cinema?'播放已暂停，可以慢慢看':'暖尾尾的表情百宝册'} · ${index + 1} / ${ALBUM_COVERS.length}</p><h2 id="dialog-title">${escape(album.title)}</h2></div>
     <figure class="album-detail-figure"><div class="album-detail-frame ${album.nativeOnly ? 'album-detail-native' : ''}"><img class="album-detail-image" src="${album.full}" alt="${escape(album.title)}的完整表情专辑封面" width="${album.width}" height="${album.height}" decoding="async"></div><figcaption>${escape(album.description)}</figcaption></figure>
-    <div class="album-detail-controls"><button class="album-detail-button" data-action="album-open" data-album="${previous.id}" aria-label="上一张：${escape(previous.title)}">${icon('back')}上一张</button><button class="album-detail-button album-detail-done" data-action="close-dialog">看完啦${icon('check')}</button><button class="album-detail-button" data-action="album-open" data-album="${next.id}" aria-label="下一张：${escape(next.title)}">下一张${icon('arrow')}</button></div>
+    <div class="album-detail-controls"><button class="album-detail-button" data-action="album-open" data-album="${previous.id}" aria-label="上一张：${escape(previous.title)}">${icon('back')}上一张</button><button class="album-detail-button album-detail-done" data-action="close-dialog">${cinema?'回到世界':'看完啦'}${icon('check')}</button><button class="album-detail-button" data-action="album-open" data-album="${next.id}" aria-label="下一张：${escape(next.title)}">下一张${icon('arrow')}</button></div>
   </section></div>`;
 }
