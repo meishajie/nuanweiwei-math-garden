@@ -1,6 +1,7 @@
 const strokes = 'stroke-linecap="round" stroke-linejoin="round"';
 export function icon(name, cls = '') {
   const shapes = {
+    chat: '<path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-6 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/>',
     leaf: '<path d="M12 21V9m0 7C4 17 2 11 3 6c6 0 9 4 9 10Zm0-4c0-7 5-10 10-9 0 6-4 10-10 9Z"/>',
     map: '<path d="m3 5 6-2 6 3 6-2v15l-6 2-6-3-6 2Zm6-2v15m6-12v15"/>',
     chest: '<path d="M3 10h18v10H3Zm0 0V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3M10 8h4v6h-4Z"/>',

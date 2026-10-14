@@ -11,7 +11,8 @@ import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './prof
 import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-4';
 import {columnMethod} from './column-method.js?v=20261014-4';
 import { t, locale } from './i18n.js?v=20261014-4';
-import { icon, emblem, magicArt } from './art.js?v=20261014-4';
+import { icon, emblem, magicArt } from './art.js?v=20261014-5';
+import { feedbackButtonMarkup, feedbackDialogMarkup } from './feedback.js?v=20261014-5';
 import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261014-4';
 import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-4';
 import { createEffects } from './effects.js?v=20261014-4';
@@ -47,6 +48,7 @@ let selectedLevel = 1;
 let hintMode = '';
 let hintClosed = false;
 let modal = '';
+let feedbackReturnModal = '';
 let pendingResetGrade=1;
 let immersiveTipShown=false;
 let modalReturnFocus = null;
@@ -96,7 +98,7 @@ function updateAudioDisplay(){
 function maintainMusic(){
   sounds.setEnabled(state.settings.sound,{unlock:false});
   if(!state.settings.sound){worldMusicRunning=false;return;}
-  const paused=document.hidden||view==='rest'||(view==='magic'&&magic.paused)||(view==='treasure'&&(treasure.paused||Boolean(modal)));
+  const paused=document.hidden||view==='rest'||modal==='feedback'||(view==='magic'&&magic.paused)||(view==='treasure'&&(treasure.paused||Boolean(modal)));
   if(paused){worldMusicRunning=false;sounds.pause();return;}
   if(view==='treasure'&&celebrationActive(treasure)){sounds.resume({unlock:false});sounds.stopMusic();return;}
   sounds.resume({unlock:false});sounds.setMusicLevel(['reward','magic','treasure'].includes(view) ? 0.4 : modal ? 0.6 : 1);
@@ -167,7 +169,7 @@ function cardButton(l, bonus=false) {
 }
 function home() {
   const next=rewards.unlockedGrades.length&&!rewards.ticket?practiceStage():suggested();
-  return `<section class="home-stage ${rewards.unlockedGrades.length?'has-play-reward':''}"><div class="home-welcome"><img src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾邀请你冒险" width="318" height="240"><div><h1>一起点亮花园</h1><p>魔法卡 ${state.cards.length} / 10</p><button class="difficulty-shortcut" data-action="settings">${difficultyLabel()}练习 ${icon('settings')}</button></div></div><div class="grade-picker" role="group" aria-label="选择练习年级">${[1,2,3,4].map(grade=>`<button class="grade-choice" data-action="grade" data-grade="${grade}" aria-pressed="${profiles.selectedGrade===grade}"><b>${grade}</b><span>年级</span></button>`).join('')}</div><div class="home-actions"><button class="primary" data-action="${hasPaused()?'resume':'intro'}" ${hasPaused()?'':`data-level="${next}"`}>${hasPaused()?'接着玩':rewards.unlockedGrades.length?'新探险':'开始冒险'}${icon('arrow')}</button><button class="secondary" data-action="nav" data-view="vault" aria-label="魔法宝藏，已有 ${state.cards.length} 张卡">${icon('chest')}魔法宝藏</button></div>${miniShortcut()}<section class="compact-map" id="garden-map" aria-label="选择花园关卡">${levels().map(l=>`<button class="focus-level ${state.cards.includes(l.id)?'level-lit':''}" data-action="intro" data-level="${l.id}" aria-label="第 ${l.id} 站 ${l.title}${l.optional?'，自选挑战':''}${state.cards.includes(l.id)?'，已点亮':''}"><span class="focus-level-number">${String(l.id).padStart(2,'0')}</span>${emblem(l.id)}<span class="focus-level-copy"><strong>${l.title}</strong><small>${state.cards.includes(l.id)?'已点亮':l.optional?'自选挑战':l.range}</small></span></button>`).join('')}</section></section>`;
+  return `<section class="home-stage ${rewards.unlockedGrades.length?'has-play-reward':''}"><div class="home-welcome"><img src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾邀请你冒险" width="318" height="240"><div><h1>一起点亮花园</h1><p>魔法卡 ${state.cards.length} / 10</p><div class="home-shortcuts"><button class="difficulty-shortcut" data-action="settings">${difficultyLabel()}练习 ${icon('settings')}</button>${feedbackButtonMarkup({compact:true})}</div></div></div><div class="grade-picker" role="group" aria-label="选择练习年级">${[1,2,3,4].map(grade=>`<button class="grade-choice" data-action="grade" data-grade="${grade}" aria-pressed="${profiles.selectedGrade===grade}"><b>${grade}</b><span>年级</span></button>`).join('')}</div><div class="home-actions"><button class="primary" data-action="${hasPaused()?'resume':'intro'}" ${hasPaused()?'':`data-level="${next}"`}>${hasPaused()?'接着玩':rewards.unlockedGrades.length?'新探险':'开始冒险'}${icon('arrow')}</button><button class="secondary" data-action="nav" data-view="vault" aria-label="魔法宝藏，已有 ${state.cards.length} 张卡">${icon('chest')}魔法宝藏</button></div>${miniShortcut()}<section class="compact-map" id="garden-map" aria-label="选择花园关卡">${levels().map(l=>`<button class="focus-level ${state.cards.includes(l.id)?'level-lit':''}" data-action="intro" data-level="${l.id}" aria-label="第 ${l.id} 站 ${l.title}${l.optional?'，自选挑战':''}${state.cards.includes(l.id)?'，已点亮':''}"><span class="focus-level-number">${String(l.id).padStart(2,'0')}</span>${emblem(l.id)}<span class="focus-level-copy"><strong>${l.title}</strong><small>${state.cards.includes(l.id)?'已点亮':l.optional?'自选挑战':l.range}</small></span></button>`).join('')}</section></section>`;
 }
 function spellCard(l, interactive=true) {
   const owned = state.cards.includes(l.id);
@@ -298,7 +300,7 @@ function rest() {
 function grownups() {
   return `<div class="page-head"><p class="eyebrow">${icon('book')}给陪伴者的小手册</p><h1>让“想明白”，比“答得快”更重要。</h1><p>可以一起看、一起摆，也可以让孩子按自己的节奏探索。</p></div><div class="guide-grid"><section class="guide-panel"><h2>一个有余地的小花园</h2><p>课程按2026年10月13日核对的官方公开目录配置。部分下册处于新旧衔接，采用当前已正式公布的下册；仅“认识小数”而未核实计算范围的章节暂不加入小数计算。<a href="./curriculum-sources.json" target="_blank" rel="noopener">查看24册课程依据</a>。</p><p>首页可选择1—4年级，每个年级10站，卡片和累计记录独立。小设置中选择教材、四档学习进度及轻松／标准／挑战。进度从上册前半到下册全册，包含前面已经学过的内容；具体计算范围随教材改变。设置只影响下一趟。</p><p>同一难度内，十关也会逐步增加数值、进退位、缺项和应用要求；轻松后段也会练已学的更大数，不会始终停在5以内。学习进度限定课程上限，当前只学到5以内时不会加入新数。每趟先热身，再主练，中途最多1题间隔复习，最后综合练习。没有旧记录时，这题是当前知识的迁移。每一题先自己试试，需要时主动打开小工具。</p><p>答错或借助工具后，仍然能收集魔法卡。用手指、纸笔、积木帮忙也很好；屏幕只能知道是否点击提示，无法知道孩子实际用了什么办法。</p><p>数学答题没有倒计时，每趟结束可以歇一歇；没有排行榜、广告、签到或付费内容。8 张主线卡已经能看见完整的组合魔法。10 张全齐额外打开星光百宝箱，观看暖尾尾的庆祝舞和三种秘密魔法。不需要追求所有题独立完成，也不消耗卡片。每档首次集齐 10 张卡，还会获得一次 60 秒的接星光小游戏；以后完成 3 个不同数学地点，可以再获得一次。次数不累积，刷新和切到后台不会延长时间，提前退出也不返还。</p></section><section class="guide-panel"><h2>这些记录说明什么？</h2><p><b>一起练过：</b>接触过这个办法。<br><b>能独立试试：</b>某一趟的 5 道目标题中，至少 4 题无提示首答正确。<br><b>隔一会也会：</b>之后另一趟，至少隔 3 题，用不同的题再次无提示首答正确。</p><p>这些只是轻量的游戏内练习信号。选择题也可能猜中，6 题不能证明真实掌握，更不代表学习诊断或成绩。鼓励孩子用自己的话或实物解释，再在别的时间试试。</p><p>遇到需要帮助的知识会进入后续复习，每趟最多 1 题。间隔按做过的题和旅程计算，不要求连续几天来玩。</p></section></div>
   <section class="guide-panel"><h2>${state.grade||1} 年级 · 探索记录</h2><table class="skill-table"><thead><tr><th scope="col">地点</th><th scope="col">独立 / 一起完成</th><th scope="col">练习信号</th></tr></thead><tbody>${levels().map(l=>`<tr><td>${String(l.id).padStart(2,'0')} ${l.title}${l.optional?' · 自选':''}</td><td>${state.stages[l.id]?.independent||0} / ${state.stages[l.id]?.supported||0}</td><td class="status-label">${t.status[stageStatus(state,l.id)]}</td></tr>`).join('')}</tbody></table></section>
-  <div class="guide-grid" style="margin-top:23px"><section class="guide-panel"><h2>只留在这里的小脚印</h2><p>无需账号，不输入孩子姓名或其他个人信息。没有外部统计或追踪。题目、插画和字体由游戏网站提供，音效在设备上合成。托管服务 GitHub Pages 会为安全目的记录访问者 IP。</p><p>进度只保存在<b>当前设备、当前浏览器、当前网址</b>里。电脑、手机、iPad 上界面都会适配，但<b>进度不会自动同步</b>。清除浏览器网站数据、隐私浏览结束或更换端口可能失去进度。</p><p>公开网址可直接分享给家长，无需电脑保持开机。没有自动跨设备同步。</p></section><section class="guide-panel"><h2>舒适地玩</h2><p>保留当前设备的声音开关，新设备默认关闭。开启声音后，旅程中会播放轻柔的花园背景音乐。答对有星光短音，过关有庆祝乐句，施法和百宝箱有不同配乐。首次点击开启或进入游戏会启动手机音频；关掉后立即停止。请同时使用设备系统音量；浏览器无法可靠识别 iPad/iPhone 的硬件静音拨片。</p><div class="setting-row"><label for="guide-motion">画面动态</label>${motionSelect('guide-motion')}</div><p>减少动态会直接展示每种魔法的完整画面，奖励内容一样多。</p><p>中文为首个语言版本；代码预留语言字典。真实儿童试玩、实际 iPad/手机和声音听感尚未验证。</p></section></div><section class="reset-panel"><div><h3>重新开始一个花园</h3><p>会清除本游戏在这个浏览器里所有年级的卡片、练习记录和小游戏机会。不会影响其他网站。</p></div><button class="secondary danger" data-action="reset-dialog">${icon('reset')}重置本地进度</button></section>`;
+  <div class="guide-grid" style="margin-top:23px"><section class="guide-panel"><h2>只留在这里的小脚印</h2><p>无需账号，不输入孩子姓名或其他个人信息。没有外部统计或追踪。题目、插画和字体由游戏网站提供，音效在设备上合成。托管服务 GitHub Pages 会为安全目的记录访问者 IP。</p><p>进度只保存在<b>当前设备、当前浏览器、当前网址</b>里。电脑、手机、iPad 上界面都会适配，但<b>进度不会自动同步</b>。清除浏览器网站数据、隐私浏览结束或更换端口可能失去进度。</p><p>公开网址可直接分享给家长，无需电脑保持开机。没有自动跨设备同步。</p><p>首页“反馈”或小设置中的“反馈与建议”可进入腾讯兔小巢。请家长协助留言，不填写孩子的姓名、学校或电话。反馈页面由腾讯提供，游戏不会自动传送本地存档或答题记录。</p></section><section class="guide-panel"><h2>舒适地玩</h2><p>保留当前设备的声音开关，新设备默认关闭。开启声音后，旅程中会播放轻柔的花园背景音乐。答对有星光短音，过关有庆祝乐句，施法和百宝箱有不同配乐。首次点击开启或进入游戏会启动手机音频；关掉后立即停止。请同时使用设备系统音量；浏览器无法可靠识别 iPad/iPhone 的硬件静音拨片。</p><div class="setting-row"><label for="guide-motion">画面动态</label>${motionSelect('guide-motion')}</div><p>减少动态会直接展示每种魔法的完整画面，奖励内容一样多。</p><p>中文为首个语言版本；代码预留语言字典。真实儿童试玩、实际 iPad/手机和声音听感尚未验证。</p></section></div><section class="reset-panel"><div><h3>重新开始一个花园</h3><p>会清除本游戏在这个浏览器里所有年级的卡片、练习记录和小游戏机会。不会影响其他网站。</p></div><button class="secondary danger" data-action="reset-dialog">${icon('reset')}重置本地进度</button></section>`;
 }
 function motionSelect(id) {
   return `<select id="${id}" data-setting="motion" aria-label="画面动态">${[['system','跟随设备设置'],['reduce','减少动态'],['full','完整动态']].map(([v,name])=>`<option value="${v}" ${state.settings.motion===v?'selected':''}>${name}</option>`).join('')}</select>`;
@@ -324,6 +326,7 @@ function treasurePage() {
 }
 function modalView() {
  if(!modal)return '';
+ if(modal==='feedback')return feedbackDialogMarkup({embedded:(window.visualViewport?.width||window.innerWidth)>1040});
  if(modal==='album')return albumDetailMarkup(selectedAlbum,{cinema:view==='treasure'&&treasure.phase==='world'});
  let title='',content='',actions='';
  const close=(label='好了')=>`<button class="primary" data-action="close-dialog">${label}${icon('check')}</button>`;
@@ -332,7 +335,7 @@ function modalView() {
  }
  if(modal==='settings'){
   title='小设置';
-  content=`${difficultyControl()}<details class="extra-settings"><summary>更多设置</summary>
+  content=`${difficultyControl()}<div class="settings-feedback">${feedbackButtonMarkup()}</div><details class="extra-settings"><summary>更多设置</summary>
    <div class="setting-row"><span class="modal-label">声音</span><button class="secondary" data-action="sound" aria-pressed="${state.settings.sound}">${icon(state.settings.sound?'sound':'mute')}${state.settings.sound?'开启':'关闭'}</button></div>
    <div class="setting-row"><label class="modal-label" for="modal-motion">动画</label>${motionSelect('modal-motion')}</div>
    <div class="settings-links"><button class="text-button" data-action="fullscreen">${icon('frame')}切换全屏</button><button class="text-button" data-action="app-help">${icon('leaf')}添加主屏幕</button><button class="text-button" data-action="nav" data-view="grownups">${icon('book')}给大人看</button></div>
@@ -399,7 +402,7 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   maintainMusic();
 }
 function openModal(name) {sounds.stopEffects();effects.pause();miniController?.pause();if(!modal)modalReturnFocus=document.activeElement?.getAttribute('data-action');modal=name;render({focusModal:true});}
-function closeModal() {if(view==='lesson'&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();miniController?.resume();const wasAlbum=modal==='album';modal='';if(!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused))){pauseScene(false);}render();if(wasAlbum&&view==='treasure'&&treasure.phase==='world')document.querySelector('[data-action="world-pause"]')?.focus();else if(wasAlbum)document.querySelector(`[data-action="album-open"][data-album="${albumReturnId||selectedAlbum}"]`)?.focus();else (document.querySelector(`[data-action="${modalReturnFocus}"]`)||document.querySelector('[data-action="settings"]'))?.focus();}
+function closeModal() {if(modal==='feedback'&&feedbackReturnModal==='settings'){feedbackReturnModal='';modal='settings';render();document.querySelector('[data-action="feedback"]')?.focus({preventScroll:true});return;}feedbackReturnModal='';if(view==='lesson'&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();miniController?.resume();const wasAlbum=modal==='album';modal='';if(!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused))){pauseScene(false);}render();if(wasAlbum&&view==='treasure'&&treasure.phase==='world')document.querySelector('[data-action="world-pause"]')?.focus();else if(wasAlbum)document.querySelector(`[data-action="album-open"][data-album="${albumReturnId||selectedAlbum}"]`)?.focus();else (document.querySelector(`[data-action="${modalReturnFocus}"]`)||document.querySelector('[data-action="settings"]'))?.focus();}
 function enterImmersivePlay(){
  const pending=requestImmersive();
  void pending.then(status=>{if(!status.immersive&&status.platform==='ios'&&!immersiveTipShown){immersiveTipShown=true;notify('想隐藏浏览器栏，可在小设置中添加主屏幕入口。');}});
@@ -566,6 +569,7 @@ app.addEventListener('click',event=>{
   if(action==='fullscreen'){void toggleFullscreen().then(status=>{if(!status.fullscreen&&!status.standalone){if(status.platform==='ios')openModal('app-help');else notify(getInstallHint());}});return;}
   if(action==='app-help'){openModal('app-help');return;}
   if(action==='settings'){openModal('settings');return;}
+  if(action==='feedback'){feedbackReturnModal=modal==='settings'?'settings':'';openModal('feedback');return;}
   if(action==='album-open'){if(view!=='treasure'||!treasure.opened||!hasTreasure()||!getAlbum(button.dataset.album))return;if(treasure.phase==='world'){treasure.paused=true;stopTreasure();sounds.pause();if(worldScene(treasure.world).id!==button.dataset.album)worldAction(treasure.world,'select',button.dataset.album);}if(modal!=='album')albumReturnId=button.dataset.album;selectedAlbum=button.dataset.album;openModal('album');return;}
   if(action==='close-dialog'){closeModal();return;}
   if(action==='sound'){void toggleSound();return;}
@@ -651,7 +655,7 @@ document.addEventListener('keydown',event=>{
   if(!modal)return;
   if(event.key==='Escape'){event.preventDefault();closeModal();return;}
   if(event.key==='Tab'){
-    const items=[...document.querySelectorAll('.modal button:not(:disabled), .modal select, .modal input, .modal a[href]')];const first=items[0],last=items.at(-1);
+    const items=[...document.querySelectorAll('.modal button:not(:disabled), .modal select, .modal input, .modal a[href], .modal iframe')];const first=items[0],last=items.at(-1);
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
   }
