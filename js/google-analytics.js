@@ -1,4 +1,4 @@
-import {GOOGLE_CONSENT_KEY,GOOGLE_CONSENT_EVENT,readGoogleConsent,privacyBlocked} from './analytics-preferences.js?v=20261014-12';
+import {GOOGLE_CONSENT_KEY,GOOGLE_CONSENT_EVENT,readGoogleConsent,privacyBlocked} from './analytics-preferences.js?v=20261014-14';
 
 const HOST='meishajie.github.io',PATH='/nuanweiwei-math-garden/';
 export function googleAnalyticsConfig(id){
