@@ -1,22 +1,23 @@
-import {restartProgress,persistRestart} from './restart.js?v=20261013-3';
-import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261013-3';
-import {hintMarkup,handleHint} from './pedagogy.js?v=20261013-3';
-import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261013-3';
-import { getLevels, difficultyRange } from './curriculum.js?v=20261013-3';
-import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261013-3';
-import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261013-3';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261013-3';
-import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261013-3';
-import {columnMethod} from './column-method.js?v=20261013-3';
-import { t, locale } from './i18n.js?v=20261013-3';
-import { icon, emblem, magicArt } from './art.js?v=20261013-3';
-import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261013-3';
-import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261013-3';
-import { createEffects } from './effects.js?v=20261013-3';
-import { createSoundPlayer } from './sounds.js?v=20261013-3';
-import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261013-3';
-import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261013-3';
-import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261013-3';
+import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-1';
+import {restartProgress,persistRestart} from './restart.js?v=20261014-1';
+import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261014-1';
+import {hintMarkup,handleHint} from './pedagogy.js?v=20261014-1';
+import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261014-1';
+import { getLevels, difficultyRange } from './curriculum.js?v=20261014-1';
+import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261014-1';
+import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261014-1';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261014-1';
+import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261014-1';
+import {columnMethod} from './column-method.js?v=20261014-1';
+import { t, locale } from './i18n.js?v=20261014-1';
+import { icon, emblem, magicArt } from './art.js?v=20261014-1';
+import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261014-1';
+import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261014-1';
+import { createEffects } from './effects.js?v=20261014-1';
+import { createSoundPlayer } from './sounds.js?v=20261014-1';
+import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261014-1';
+import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261014-1';
+import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261014-1';
 
 const STORAGE_KEY = 'nuanweiwei.math-garden.v1';
 const PROFILE_KEY = 'nuanweiwei.math-garden.profiles.v3';
@@ -57,7 +58,7 @@ let cardOrder=[];
 let cardVisualKey='';
 let cardVisualOrder=[];
 let soundUnavailable = false;
-let treasure = {opened:false,finished:false,paused:false,theme:'starlight',elapsed:0,last:0,frame:0};
+let treasure = createCelebration();
 let magic = {id:1,finale:false,paused:false,finished:false,elapsed:0,last:0,frame:0};
 let characterController=null;
 let characterQuestionKey='';
@@ -93,8 +94,9 @@ function updateAudioDisplay(){
 function maintainMusic(){
   sounds.setEnabled(state.settings.sound,{unlock:false});
   if(!state.settings.sound)return;
-  const paused=document.hidden||view==='rest'||(view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused);
+  const paused=document.hidden||view==='rest'||(view==='magic'&&magic.paused)||(view==='treasure'&&(treasure.paused||Boolean(modal)));
   if(paused){sounds.pause();return;}
+  if(view==='treasure'&&celebrationActive(treasure)){sounds.resume({unlock:false});sounds.stopMusic();return;}
   sounds.resume({unlock:false});sounds.setMusicLevel(['reward','magic','treasure'].includes(view) ? 0.4 : modal ? 0.6 : 1);
   void sounds.startMusic({unlock:false}).then(updateAudioDisplay);
 }
@@ -103,7 +105,7 @@ document.addEventListener('click',event=>{
   if(!event.isTrusted||!state.settings.sound||!event.target.closest('button'))return;
   sounds.resume();
   void sounds.unlock();
-  if(view!=='rest'&&!(view==='magic'&&magic.paused)&&!(view==='treasure'&&treasure.paused))void sounds.startMusic().then(updateAudioDisplay);
+  if(view!=='rest'&&!(view==='magic'&&magic.paused)&&!(view==='treasure'&&(treasure.paused||celebrationActive(treasure))))void sounds.startMusic().then(updateAudioDisplay);
 },{capture:true});
 
 function save() {
@@ -269,8 +271,9 @@ function finishRound() {
   const session=state.session;if(!session||session.completed||!session.feedback?.correct)return;
   const result=advance(state);
   if(!result.completed)return;
-  creditRound();save();startMagic(session.levelId,false,true);
+  creditRound();save();showRoundResult(result,session.levelId);
 }
+function showRoundResult(result,id){if(result.newCard&&hasTreasure())startTreasure();else startMagic(id,false,true);}
 function scheduleRoundCompletion() {
   clearTimeout(completionTimer);
   completionTimer=setTimeout(()=>{completionTimer=0;if(view==='lesson'&&!modal&&!document.hidden)finishRound();},750);
@@ -315,7 +318,7 @@ function magicPage() {
   return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div><section class="magic-view ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?'我们点亮花园啦！':magic.paused?'等你准备好':'星光集合……'}</p></section>${magic.completedRound?roundSummaryMarkup(state.session)+coachingMarkup():''}<div class="magic-controls">${nextMagicAction()}${magic.finished?'':`<button class="secondary" data-action="magic-pause">${icon(magic.paused?'play':'pause')}${magic.paused?'继续':'暂停'}</button>`}<button class="secondary" data-action="nav" data-view="home">${icon('leaf')}回花园</button></div>`;
 }
 function treasurePage() {
-  return treasureMarkup({...treasure,paused:treasure.paused||Boolean(modal)}).replace('<div class="treasure-controls">',`${gardenSummaryMarkup(state)}<div class="treasure-controls">`);
+  return celebrationMarkup({...treasure,paused:treasure.paused||Boolean(modal)},{reduced:reduceMotion(),statistics:gardenSummaryMarkup(state),mini:miniShortcut()});
 }
 function modalView() {
  if(!modal)return '';
@@ -372,13 +375,14 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   const problemScroll=keepScroll?(document.querySelector('.problem-card')?.scrollTop||0):0;
   // Settings update the DOM. Preserve the visual timeline independently of
   // that render, including while a child has explicitly paused the scene.
-  const oldScene=preserveMagic&&['magic','treasure'].includes(view)?document.querySelector(view==='magic'?'.magic-view':'.treasure-view'):null;
+  const oldScene=preserveMagic&&['magic','treasure'].includes(view)?document.querySelector(view==='magic'?'.magic-view':'.curtain'):null;
   const times=oldScene?.getAnimations?.({subtree:true}).map(a=>a.currentTime) || [];
   applyMotion(); document.documentElement.lang=locale;
   document.body.dataset.view=view;
   const pages={home,vault,intro,lesson,reward,rest,grownups,magic:magicPage,treasure:treasurePage,'mini-menu':miniMenu,mini:()=>starPlayMarkup(rewards.active),'mini-end':()=>starPlayEndMarkup(rewards.lastPlay)};
   app.innerHTML=`<div class="shell">${header()}${storageIssue?`<div class="storage-warning" role="status">${storageIssue}</div>`:''}<main id="main" tabindex="-1">${(pages[view]||home)()}</main>${footer()}</div>${modalView()}`;
-  if(times.length)document.querySelector(view==='magic'?'.magic-view':'.treasure-view')?.getAnimations?.({subtree:true}).forEach((animation,i)=>{if(times[i]!==undefined&&times[i]!==null)animation.currentTime=times[i];});
+  if(times.length)document.querySelector(view==='magic'?'.magic-view':'.curtain')?.getAnimations?.({subtree:true}).forEach((animation,i)=>{if(times[i]!==undefined&&times[i]!==null)animation.currentTime=times[i];});
+  if(view==='treasure')poseCelebration();
   if(keepScroll){document.querySelector('#main').scrollTop=mainScroll;const problem=document.querySelector('.problem-card');if(problem)problem.scrollTop=problemScroll;}
   if(view==='mini')installMini();
   if(view==='lesson')installCharacter(characterKey,oldCharacter);
@@ -438,31 +442,52 @@ async function toggleSound() {
   const refocusSound=document.activeElement?.getAttribute('data-action')==='sound';
   state.settings.sound=!state.settings.sound;save();sounds.setEnabled(state.settings.sound);
   if(state.settings.sound){sounds.resume();void sounds.unlock();soundUnavailable=false;maintainMusic();}
-  if(state.settings.sound&&!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused)||modal)){sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play('magic',{offset:magic.elapsed/1000});else if(view==='treasure'&&treasure.opened&&!treasure.finished)void sounds.play('treasure',{offset:treasure.elapsed/1000});else void chime(view==='reward'?'reward':'correct');}
+  if(state.settings.sound&&!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused)||modal)){sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play('magic',{offset:magic.elapsed/1000});else if(view==='treasure'&&celebrationActive(treasure))playCelebrationSound();else void chime(view==='reward'?'reward':'correct');}
   render();if(refocusSound)(document.querySelector('.modal [data-action="sound"]')||document.querySelector('[data-action="sound"]'))?.focus({preventScroll:true});
 }
+function poseCelebration(){
+ const ms=treasure.phase==='congrats'?treasure.phaseElapsed:Math.max(0,treasure.elapsed-1500);
+ applyDancePose(document.querySelector('.curtain'),ms,{cheer:treasure.phase==='congrats',still:reduceMotion()});
+}
+function playCelebrationSound(){
+ if(!celebrationActive(treasure)||treasure.paused||modal||document.hidden)return;
+ sounds.resume({unlock:false});sounds.stopMusic();
+ void sounds.play(treasure.phase==='congrats'?'victory':'dance',{offset:(treasure.phase==='congrats'?treasure.phaseElapsed:treasure.elapsed)/1000});
+}
+function runCelebration(){
+ if(view!=='treasure'||!celebrationActive(treasure)||treasure.paused||treasure.frame)return;
+ treasure.last=0;treasure.frame=requestAnimationFrame(treasureTick);
+}
 function startTreasure() {
-  if(!hasTreasure())return;
-  void requestImmersive();stopMagic();stopTreasure();effects.stop();sounds.stopEffects();
-  treasure={opened:false,finished:false,paused:false,theme:'starlight',elapsed:0,last:0,frame:0};go('treasure');
+ if(!hasTreasure())return;
+ void requestImmersive();stopTreasure();treasure=createCelebration();go('treasure');
+ playCelebrationSound();runCelebration();
 }
 function openTreasure() {
-  if(!hasTreasure()||treasure.opened)return;
-  void requestImmersive();treasure.opened=true;treasure.finished=reduceMotion();treasure.paused=false;
-  treasure.elapsed=0;treasure.last=0;effects.resume();sounds.resume({unlock:false});render({preserveMagic:false});
-  void chime('treasure');effects.celebrate('treasure',{origins:[...document.querySelectorAll('.treasure-flying-card')],target:document.querySelector('.treasure-dancer')});
-  if(!reduceMotion())treasure.frame=requestAnimationFrame(treasureTick);
+ if(!hasTreasure()||!celebrationAction(treasure,'open',{reduced:reduceMotion()}))return;
+ stopTreasure();effects.stop();sounds.stopEffects();effects.resume();sounds.resume({unlock:false});
+ render({preserveMagic:false});
+ if(reduceMotion())void sounds.play('chest-glint');else{playCelebrationSound();runCelebration();}
 }
 function treasureTick(now) {
-  if(view!=='treasure'||reduceMotion()){stopTreasure();return;}
-  if(!treasure.last)treasure.last=now;
-  if(!treasure.paused&&!document.hidden&&!modal)treasure.elapsed+=Math.min(now-treasure.last,150);
-  treasure.last=now;
-  if(treasure.elapsed>=10000){treasure.finished=true;stopTreasure();render();return;}
-  treasure.frame=requestAnimationFrame(treasureTick);
+ treasure.frame=0;
+ if(view!=='treasure'||!celebrationActive(treasure)||treasure.paused)return;
+ const delta=treasure.last?Math.max(0,now-treasure.last):0;treasure.last=now;
+ if(!document.hidden&&!modal){
+  const changed=advanceCelebration(treasure,delta);
+  if(changed){
+   if(!celebrationActive(treasure))sounds.stopEffects();
+   render({preserveMagic:false});
+   if(treasure.phase==='chest')document.querySelector('[data-action="treasure-open"]')?.focus({preventScroll:true});
+  }else if(!reduceMotion())poseCelebration();
+ }
+ if(celebrationActive(treasure))treasure.frame=requestAnimationFrame(treasureTick);
+}
+function pauseCelebration(paused){
+ treasure.paused=paused;stopTreasure();pauseScene(paused);render();if(!paused)runCelebration();
 }
 function pauseScene(paused) {
-  if(paused){effects.pause();sounds.pause();}else{effects.resume();sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play('magic',{offset:magic.elapsed/1000});if(view==='treasure'&&treasure.opened&&!treasure.finished)void sounds.play('treasure',{offset:treasure.elapsed/1000});}
+  if(paused){effects.pause();sounds.pause();}else{effects.resume();sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play('magic',{offset:magic.elapsed/1000});if(view==='treasure'&&celebrationActive(treasure))playCelebrationSound();}
 }
 
 app.addEventListener('click',event=>{
@@ -527,24 +552,28 @@ app.addEventListener('click',event=>{
   }
   if(action==='help'){markHint(state);hintMode='frames';save();openModal('hint');return;}
   if(action==='hint'){markHint(state);hintMode=button.dataset.kind;hintClosed=false;save();render();document.querySelector(`[data-action="hint"][data-kind="${button.dataset.kind}"]`)?.focus({preventScroll:true});return;}
-  if(action==='next'){cardSelection=0;cardOrder=[];const result=advance(state);hintMode='';hintClosed=false;save();if(result.completed){creditRound();save();startMagic(state.session.levelId,false,true);}else{render({preserveScroll:false});document.querySelector('#problem-title')?.setAttribute('tabindex','-1');document.querySelector('#problem-title')?.focus({preventScroll:true});}return;}
+  if(action==='next'){cardSelection=0;cardOrder=[];const result=advance(state);hintMode='';hintClosed=false;save();if(result.completed){creditRound();save();showRoundResult(result,state.session.levelId);}else{render({preserveScroll:false});document.querySelector('#problem-title')?.setAttribute('tabindex','-1');document.querySelector('#problem-title')?.focus({preventScroll:true});}return;}
   if(action==='cast'){startMagic(id);return;}
   if(action==='finale'){startMagic(8,true);return;}
   if(action==='magic-pause'){magic.paused=!magic.paused;pauseScene(magic.paused);updateMagicPause();return;}
     if(action==='treasure'){startTreasure();return;}
   if(action==='treasure-open'){openTreasure();return;}
-  if(action==='treasure-pause'){
-    treasure.paused=!treasure.paused;pauseScene(treasure.paused);
-    document.querySelector('.treasure-view')?.classList.toggle('paused',treasure.paused);
-    button.innerHTML=`${icon(treasure.paused?'play':'pause')}${treasure.paused?'继续星光舞':'暂停一下'}`;button.setAttribute('aria-pressed',String(treasure.paused));const status=document.querySelector('.treasure-status');if(status)status.textContent=treasure.paused?'星光舞停在这里，等你准备好。':'十种魔法正在汇合。暖尾尾和你，一起点亮花园。';return;
+  if(action==='treasure-reveal'){
+   if(celebrationAction(treasure,'reveal')){stopTreasure();sounds.stopEffects();render({preserveMagic:false});document.querySelector('[data-action="treasure-open"]')?.focus({preventScroll:true});}return;
+  }
+  if(action==='treasure-pause'){pauseCelebration(!treasure.paused);return;}
+  if(action==='treasure-skip'){
+   if(celebrationAction(treasure,'skip')){stopTreasure();sounds.stopEffects();effects.stop();render({preserveMagic:false});}return;
   }
   if(action==='treasure-replay'){
-    stopTreasure();effects.stop();sounds.stopEffects();treasure.opened=false;openTreasure();return;
+   if(!celebrationAction(treasure,'replay',{reduced:reduceMotion()}))return;
+   stopTreasure();effects.stop();sounds.stopEffects();render({preserveMagic:false});
+   if(reduceMotion())void sounds.play('chest-glint');else{playCelebrationSound();runCelebration();}return;
   }
+  if(action==='treasure-collection'){if(treasure.phase!=='keepsake')return;treasure.collection=!treasure.collection;render();return;}
   if(action==='treasure-theme'){
-    if(!treasure.opened||!['starlight','blossom','aurora'].includes(button.dataset.theme))return;
-    treasure.theme=button.dataset.theme;render();
-    if(!treasure.paused){effects.burst('correct',{origin:document.querySelector('.treasure-dancer')});if(treasure.finished)void chime('correct');}return;
+   if(treasure.phase!=='keepsake'||!['starlight','blossom','aurora'].includes(button.dataset.theme))return;
+   treasure.theme=button.dataset.theme;render();return;
   }
   if(action==='grade-reset-dialog'){pendingResetGrade=profiles.selectedGrade;openModal('grade-reset');return;}
   if(action==='reset-dialog'){openModal('reset');return;}
@@ -558,7 +587,7 @@ app.addEventListener('change',event=>{
   if(event.target.dataset.setting==='difficulty'&&['easy','standard','challenge'].includes(event.target.value)){state.difficulty=event.target.value;save();render({focusModal:true});document.getElementById('garden-difficulty')?.focus();return;}
   if(event.target.dataset.setting==='motion'){
     state.settings.motion=event.target.value;save();applyMotion();const focused=event.target.id;
-    if(reduceMotion()){effects.stop();if(view==='treasure'){stopTreasure();treasure.finished=treasure.opened;}}
+    if(reduceMotion()){effects.stop();if(view==='treasure'&&['opening','dance'].includes(treasure.phase)){celebrationAction(treasure,'skip');stopTreasure();sounds.stopEffects();}}
     if(view==='magic'){if(reduceMotion()){stopMagic();magic.finished=true;}else if(!magic.finished&&!magic.frame)magic.frame=requestAnimationFrame(magicTick);}
     render();document.getElementById(focused)?.focus();
   }
@@ -573,10 +602,10 @@ document.addEventListener('keydown',event=>{
   }
 });
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){characterController?.pause();effects.pause();sounds.pause();if(view==='treasure'&&treasure.opened&&!treasure.finished){treasure.paused=true;document.querySelector('.treasure-view')?.classList.add('paused');const b=document.querySelector('[data-action="treasure-pause"]');if(b)b.innerHTML=icon('play')+'继续星光舞';}if(view==='magic'&&!magic.finished){magic.paused=true;updateMagicPause();}}else{if(!modal)characterController?.resume();maintainMusic();if(view==='lesson'&&!modal&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();}
+  if(document.hidden){characterController?.pause();effects.pause();sounds.pause();if(view==='treasure'&&celebrationActive(treasure)){treasure.paused=true;stopTreasure();render();}if(view==='magic'&&!magic.finished){magic.paused=true;updateMagicPause();}}else{if(!modal)characterController?.resume();maintainMusic();if(view==='lesson'&&!modal&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();}
 });
 window.addEventListener('pageshow',event=>{if(event.persisted){render({preserveMagic:false});}});
-window.addEventListener('pagehide',()=>{clearTimeout(completionTimer);completionTimer=0;stopCharacter();miniController?.destroy();miniController=null;save();effects.stop();sounds.stop();});
-systemMotion.addEventListener('change',()=>{applyMotion();characterController?.setMotion(()=>reduceMotion()?'reduce':'full');if(reduceMotion()){effects.stop();if(view==='treasure'&&treasure.opened){stopTreasure();treasure.finished=true;render();}}if(view==='magic'&&reduceMotion()){stopMagic();magic.finished=true;render();}});
+window.addEventListener('pagehide',()=>{clearTimeout(completionTimer);completionTimer=0;stopCharacter();stopTreasure();if(view==='treasure'&&celebrationActive(treasure))treasure.paused=true;miniController?.destroy();miniController=null;save();effects.stop();sounds.stop();});
+systemMotion.addEventListener('change',()=>{applyMotion();characterController?.setMotion(()=>reduceMotion()?'reduce':'full');if(reduceMotion()){effects.stop();if(view==='treasure'&&['opening','dance'].includes(treasure.phase)){celebrationAction(treasure,'skip');stopTreasure();sounds.stopEffects();render();}}if(view==='magic'&&reduceMotion()){stopMagic();magic.finished=true;render();}});
 save();
 render();

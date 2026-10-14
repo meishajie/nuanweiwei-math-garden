@@ -1,0 +1,70 @@
+/* One surprise at a time. Header and actions remain reachable on short screens. */
+body[data-view=treasure] #main{overflow-y:auto;min-height:0}
+body[data-view=treasure] .curtain{display:flex;flex-direction:column;gap:12px;width:100%;max-width:1000px;margin:auto;padding:12px 0 24px;color:#fff5dc}
+.curtain-heading{text-align:center;flex:none;margin:0}
+.curtain .curtain-kicker{font-size:12px;letter-spacing:.15em;color:#d8c2f0;margin:0 0 7px}
+.curtain-heading h1{font-size:clamp(27px,7vw,49px);font-weight:800;line-height:1.35;margin:0;color:#ffdf8e;text-shadow:0 2px 0 #8e519d,0 0 23px #ffe2a957}
+.curtain-heading>p:last-child{font-size:clamp(14px,3.6vw,18px);margin:8px 0 0}
+.curtain-stage{height:clamp(180px,calc(var(--visible-height,100dvh) - 375px),400px);min-height:180px;position:relative;isolation:isolate;overflow:hidden;border:1px solid #ecc87b77;border-radius:30px;background:radial-gradient(ellipse at 50% 75%,#87539744,transparent 55%),linear-gradient(#261b4290,#261b42d9),url('./assets/magic-garden-v2.webp') center/cover;box-shadow:inset 0 0 60px #a182c130,0 15px 50px #130e3544}
+.curtain-aurora-rays{position:absolute;inset:-20%;z-index:-1;opacity:.6;background:conic-gradient(from 10deg at 50% 90%,transparent 10%,#dab4fb4d 18%,transparent 25%,#ffe8ac4d 36%,transparent 44%,#a2edd844 63%,transparent 72%);transform-origin:50% 90%;animation:curtain-light 8s ease-in-out infinite alternate}
+.curtain-sparks{position:absolute;inset:0;pointer-events:none}
+.curtain-sparks>i{position:absolute;left:var(--x);top:var(--y);font:normal 20px/1 Arial;color:#ffe5a1;text-shadow:0 0 8px #f6c666;animation:curtain-spark-in 1.7s var(--delay) both}
+.curtain-floor{position:absolute;left:17%;right:17%;bottom:7%;height:15%;border:1px solid #f8d89f77;box-shadow:0 0 35px #e7a4f755,inset 0 0 35px #ffe4ad44;background:radial-gradient(ellipse,#deb5db4a,transparent 70%);border-radius:50%}
+.curtain-dancer{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.curtain-dancer .character-companion{--companion-size:520px;width:min(91%,520px);max-height:100%;aspect-ratio:1744/1350;contain:layout paint;filter:drop-shadow(0 5px 9px #e3bbef35)}
+.curtain-dancer .cr-wishes{opacity:0}
+.curtain-dancer [data-dance-face=wink] .cr-expression-correct{display:none}
+.curtain-dancer [data-dance-face=wink] .cr-expression-idle{display:inline}
+.curtain-success{position:absolute;left:7%;bottom:14%;font:800 clamp(27px,8vw,66px)/1.2 Arial;color:#ffe1a0;transform:rotate(-9deg);text-shadow:0 0 18px #e3bd7890;animation:curtain-title-in .6s both}
+.curtain-success span{font-size:.6em;vertical-align:middle}
+.curtain-card-ring{position:absolute;inset:0}
+.curtain-card-ring>span{position:absolute;left:calc(8% + var(--card)*8.5%);top:6%;width:clamp(20px,5vw,41px);height:41px;display:grid;place-items:center;animation:curtain-card-in .7s calc(var(--card)*.16s) both;filter:drop-shadow(0 0 6px #e4bfff)}
+.curtain-card-ring svg{width:100%;height:100%}
+.curtain-chest{position:absolute;width:170px;height:145px;left:50%;top:43%;transform:translate(-50%,-30%);perspective:700px}
+.curtain-chest-halo{position:absolute;inset:-50px;background:radial-gradient(ellipse,#ffe2a552,transparent 68%);border-radius:50%;animation:curtain-chest-breathe 3s ease-in-out infinite}
+.curtain-chest-base{position:absolute;left:0;right:0;bottom:0;height:95px;border:4px solid #f4d98e;border-radius:10px 10px 25px 25px;background:linear-gradient(120deg,#c99b50,#775284 45%,#ab7baa);box-shadow:0 10px 20px #17102a88,inset 0 0 0 5px #886d6266}
+.curtain-chest-base:before,.curtain-chest-base:after{content:'';position:absolute;top:0;bottom:0;width:10px;background:#edc98088}
+.curtain-chest-base:before{left:20px}.curtain-chest-base:after{right:20px}
+.curtain-chest-base>span{position:absolute;left:65px;top:11px;padding:10px 5px;background:#f2d586;border-radius:8px;color:#805485}
+.curtain-chest-lid{position:absolute;left:-5px;right:-5px;top:7px;height:60px;z-index:2;border:4px solid #f6db94;border-radius:45px 45px 9px 9px;background:linear-gradient(155deg,#d0a0cd,#8d65a2 70%);display:grid;place-items:center;color:#ffe7a4;transform-origin:50% 100%;backface-visibility:visible}
+.curtain-chest-light{position:absolute;left:-50px;right:-50px;bottom:40px;height:230px;background:linear-gradient(transparent,#ffefba77);clip-path:polygon(0 0,100% 0,68% 100%,32% 100%);opacity:0;pointer-events:none}
+.curtain-chest-whisper{position:absolute;bottom:4%;left:0;right:0;text-align:center;font-size:15px;color:#fbe6b9}
+.curtain-controls{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;flex:none}
+.curtain-controls>button{min-height:48px;min-width:150px;font-size:17px}
+body[data-view=treasure] .curtain-controls .primary{background:linear-gradient(135deg,#f9dd97,#eabd7d);border:1px solid #fff0c0;color:#624274;box-shadow:0 5px 18px #d4a66a33}
+.curtain-controls .secondary{color:#ffedc7;border-color:#ceb0e3;background:#6a498a55}
+.curtain-caption{margin:0;text-align:center;color:#dac8e4;font-size:13px;line-height:1.6}
+.curtain-leave{align-self:center;min-height:44px;color:#ebdaf2;font-size:14px}
+.curtain[data-celebration-phase=opening] .curtain-chest-lid{animation:curtain-lid 1.5s both}
+.curtain[data-celebration-phase=opening] .curtain-chest-light{animation:curtain-unveil 1.5s both}
+.curtain[data-celebration-phase=opening] .curtain-dancer{opacity:0;animation:curtain-enter .7s .8s both}
+.curtain[data-celebration-phase=dance] .curtain-chest{opacity:0;pointer-events:none}
+.curtain[data-celebration-phase=dance] .curtain-aurora-rays{opacity:.75}
+.curtain-notes{position:absolute;inset:20% 7% auto;color:#efd391;font-size:35px;display:flex;justify-content:space-between;pointer-events:none}
+.curtain-notes span{font-size:35px}.curtain-notes span:last-child{margin-top:45px;font-size:27px;color:#cce2ef}
+.curtain[data-celebration-phase=opening] .curtain-notes{opacity:0}
+.curtain-keepsake{position:absolute;inset:5%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.curtain-keepsake .treasure-badge{position:relative;transform:none;width:160px;height:180px;flex:none;margin:0}
+.curtain-keepsake p{font-size:19px;margin:0;color:#ffe8b3}
+.curtain-more{max-width:800px;width:100%;align-self:center;color:#f2e3f8;border-top:1px solid #bc98cb55;margin-top:8px;padding:5px 0}
+.curtain-more summary{min-height:44px;cursor:pointer;padding:12px 4px;box-sizing:border-box;font-size:15px}
+.curtain-more .text-button{color:#f4dfa9;min-height:48px}
+.curtain-more .curtain-themes{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+.curtain-themes button{min-height:44px;color:#f5e4ff;background:#704e8f66;font-size:13px}
+.curtain-themes button[aria-pressed=true]{border-color:#efcf83;color:#ffe7a6}
+.curtain-more .garden-summary{margin:10px 0}.curtain-more .play-reward-shortcut{display:flex;margin:8px 0}
+.curtain-blossom .curtain-stage{background-image:radial-gradient(ellipse at 50% 70%,#e5a4d32b,transparent),linear-gradient(#4c284875,#251e40dd),url('./assets/magic-garden-v2.webp')}
+.curtain-aurora .curtain-stage{background-image:radial-gradient(ellipse at 50% 20%,#81d8c33b,transparent),linear-gradient(#1a354875,#251e40dd),url('./assets/magic-garden-v2.webp')}
+.curtain.paused .curtain-stage *{animation-play-state:paused!important}
+.curtain-still *{animation:none!important}
+@keyframes curtain-light{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+@keyframes curtain-spark-in{0%{opacity:0;transform:translateY(30px) scale(.3)}60%{opacity:1;transform:translateY(-5px) scale(1.15)}100%{opacity:.7;transform:none}}
+@keyframes curtain-title-in{from{opacity:0;transform:translateY(15px) rotate(-9deg) scale(.8)}to{opacity:1;transform:rotate(-9deg)}}
+@keyframes curtain-card-in{from{opacity:0;transform:translateY(60px) scale(.4)}to{opacity:1;transform:none}}
+@keyframes curtain-chest-breathe{0%,100%{opacity:.55;transform:scale(.95)}50%{opacity:.9;transform:scale(1.06)}}
+@keyframes curtain-lid{to{transform:translateY(-30px) rotateX(115deg);opacity:0}}
+@keyframes curtain-unveil{0%{opacity:0;transform:scaleY(.2)}50%{opacity:1;transform:scaleY(1)}100%{opacity:0;transform:scaleY(1.1)}}
+@keyframes curtain-enter{from{opacity:0;transform:translateY(70px) scale(.7)}to{opacity:1;transform:none}}
+@media(max-width:600px){body[data-view=treasure] .curtain{gap:10px;padding-top:7px}.curtain-stage{border-radius:22px}.curtain-dancer .character-companion{width:98%}.curtain-controls{gap:8px}.curtain-controls>button{min-width:0;flex:1;font-size:15px}.curtain-heading h1{font-size:30px}}
+@media(max-height:600px) and (orientation:portrait){.curtain-heading h1{font-size:26px}.curtain-heading>p:last-child{font-size:14px}.curtain-caption{font-size:12px}.curtain-keepsake .treasure-badge{height:145px;width:135px}}
+@media(max-height:430px) and (orientation:landscape){body[data-view=treasure] .curtain{display:grid;grid-template-columns:minmax(260px,1.3fr) minmax(230px,1fr);gap:5px 15px;align-items:center;max-width:1000px;padding:0 0 10px}.curtain-stage{grid-row:1 / span 4;grid-column:1;height:clamp(180px,65dvh,255px);min-height:180px}.curtain-heading{grid-column:2}.curtain-heading h1{font-size:26px}.curtain .curtain-kicker{font-size:10px;margin:0 0 3px}.curtain-heading>p:last-child{font-size:13px;margin:3px 0}.curtain-controls{grid-column:2}.curtain-controls>button{min-height:44px;min-width:0;font-size:14px;padding:8px;flex:1}.curtain-caption,.curtain-leave{grid-column:2;margin:0;min-height:0;font-size:12px}.curtain-more,.curtain .album-cover-gallery{grid-column:1 / -1}.curtain-keepsake .treasure-badge{width:125px;height:140px}.curtain-keepsake p{font-size:15px}.curtain-chest{transform:translate(-50%,-30%) scale(.8)}}

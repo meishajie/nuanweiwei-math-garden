@@ -1,6 +1,6 @@
-import {TOPICS} from './course-catalog.js?v=20261013-3';
-import {number,operation,calculate,formatValue,expressionSteps,expressionText,symbol,decimal} from './course-math.js?v=20261013-3';
-import {explain} from './engine.js?v=20261013-3';
+import {TOPICS} from './course-catalog.js?v=20261014-1';
+import {number,operation,calculate,formatValue,expressionSteps,expressionText,symbol,decimal} from './course-math.js?v=20261014-1';
+import {explain} from './engine.js?v=20261014-1';
 const places=['个位','十位','百位','千位','万位'];
 function exprOf(q){if(q.expression)return q.expression;if(q.kind==='cards')return null;if(q.kind==='chain')return operation(q.ops[1],operation(q.ops[0],number(q.terms[0]),number(q.terms[1])),number(q.terms[2]));return operation(q.op,number(q.a),number(q.b));}
 const step=(prompt,answer,note='')=>({prompt,answer:String(answer),note});

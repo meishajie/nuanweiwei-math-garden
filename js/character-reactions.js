@@ -15,7 +15,7 @@ const isReduced = motion => {
 };
 
 /** Use mode for the current static state; call react only for a NEW answer event. */
-export function companionMarkup({mode = 'idle', kind = 'lesson', motion = 'full'} = {}) {
+export function companionMarkup({mode = 'idle', kind = 'lesson', motion = 'full', expression = 'animated'} = {}) {
   const state = modeOf(mode);
   const size = KINDS.has(kind) ? kind : 'lesson';
   const id = `cr-${++sequence}`;
@@ -42,11 +42,11 @@ export function companionMarkup({mode = 'idle', kind = 'lesson', motion = 'full'
           <g class="cr-pony cr-pony-left">${image('left-pony')}</g>
           <g class="cr-pony cr-pony-right">${image('right-pony')}</g>
           ${image('head')}
-          ${face('idle', '<path class="cr-eye cr-eye-left" d="M629 418Q643 386 662 413"/><path class="cr-eye cr-eye-right" d="M746 385Q752 361 769 368M752 368l-2-18m10 18 8-15m-1 24 14-7"/>', '<path d="M686 466Q714 511 752 453"/>')}
+          ${expression==='original'?'':`${face('idle', '<path class="cr-eye cr-eye-left" d="M629 418Q643 386 662 413"/><path class="cr-eye cr-eye-right" d="M746 385Q752 361 769 368M752 368l-2-18m10 18 8-15m-1 24 14-7"/>', '<path d="M686 466Q714 511 752 453"/>')}
           ${face('correct', '<path d="M627 420Q642 385 665 411M738 375Q750 340 772 357"/>', '<path class="cr-happy-mouth" d="M684 463Q714 479 754 448Q747 500 716 502Q695 501 684 463Z"/><path class="cr-tongue" d="M708 492Q723 476 739 487"/>')}
           ${face('think', '<path class="cr-look" d="M638 407v9M767 357v9"/><path class="cr-brow" d="M624 387q14-10 30-3M748 338q13-12 28-7"/>', '<path d="M701 477Q721 479 736 466"/>')}
           ${face('encourage', '<path d="M627 420Q642 385 665 411M743 379Q753 345 773 359"/>', '<path d="M687 468Q716 510 751 451"/>')}
-          <g class="cr-blink"><g fill="#fdedd5"><rect x="722" y="315" width="83" height="98" rx="30"/></g><g fill="url(#${id}-skin)"><rect x="722" y="315" width="83" height="98" rx="30"/></g><path class="cr-face-lines" d="M737 370Q752 380 770 360"/></g>
+          <g class="cr-blink"><g fill="#fdedd5"><rect x="722" y="315" width="83" height="98" rx="30"/></g><g fill="url(#${id}-skin)"><rect x="722" y="315" width="83" height="98" rx="30"/></g><path class="cr-face-lines" d="M737 370Q752 380 770 360"/></g>`}
         </g>
         <g transform="translate(834 553)"><g class="cr-arm cr-arm-right"><path d="M0 0Q50-34 84-72"/><g transform="translate(84 -72)"><g class="cr-forearm cr-forearm-right"><path d="M0 0Q55-55 87-120"/><circle class="cr-hand" cx="95" cy="-134" r="25"/></g></g></g></g>
       </g>

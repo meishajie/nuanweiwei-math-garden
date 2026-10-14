@@ -10,6 +10,31 @@ export const MUSIC_LOOP_SECONDS = 24;
 export function getSoundScore(kind = 'correct') {
   if (kind === 'chest') return getSoundScore('treasure');
   if (kind === 'retry') return [bell(0, 64, .3, .11), bell(.18, 60, .42, .085)];
+  if(kind==='victory')return [
+    ...[72,76,79,84].map((midi,i)=>tone('horn',i*.28,midi,i===3?1.1:.36,.065)),
+    ...pad(.84,[60,64,67,72],2.3,.023),noise('shimmer',1.3,.6,.02,2400),
+    ...[84,88,91,88,86,84,79,84].map((midi,i)=>bell(2.2+i*.32,midi,.65,.055)),
+    ...pad(4.4,[60,64,67],1,.015)
+  ];
+  if(kind==='chest-glint')return [bell(0,76,.4,.065),bell(.15,79,.55,.06),bell(.3,84,.8,.05),noise('shimmer',.45,.7,.02,2300)];
+  if(kind==='dance'){
+    // Original 120 BPM miniature, 1.5s unveiling plus exactly 30s of dance.
+    // Three four-bar phrases vary the tune; the last six seconds form a cadence.
+    const tune=[76,79,84,79,81,79,76,72,74,77,81,77,79,76,74,72];
+    const chords=[[60,64,67],[57,60,64],[53,57,60],[55,59,62]];
+    const opening=getSoundScore('chest-glint');
+    const beat=Array.from({length:60},(_,i)=>{
+      const at=1.5+i*.5,bar=Math.floor(i/4),chord=chords[Math.floor(i/4)%4],phrase=Math.floor(i/16);
+      const midi=i>=56?[79,76,74,72][i-56]:tune[i%16]+(phrase===1&&i%4===2?12:phrase===2&&i%4===3?-5:0);
+      return [tone('pluck',at,midi,.43,i>=56?.063:.058),tone('bass',at,chord[i%2===0?0:2]-12,.3,.032),
+       ...(i%4===0?pad(at,chord,1.85,.012):[]),
+       {type:'kick',at,duration:.13,volume:i%4===0?.048:.025,fromFrequency:85,toFrequency:48},
+       ...(i%2===1?[noise('clap',at,.085,.016,1300)]:[]),noise('shaker',at+.25,.06,.009,3400),
+       ...(i%8===6?[bell(at+.125,midi+12,.34,.029)]:[])
+      ];
+    }).flat();
+    return [...opening,...beat];
+  }
   if (kind === 'music' || kind === 'background') {
     // Original 80 BPM eight-bar miniature: soft felt notes and warm held triads.
     const chords = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62], [60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]];
