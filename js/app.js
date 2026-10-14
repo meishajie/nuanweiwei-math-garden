@@ -1,5 +1,5 @@
 import {parentGuideMarkup} from './course-guide.js?v=20261014-12';
-import {googleConsentMarkup,readGoogleConsent,writeGoogleConsent} from './analytics-preferences.js?v=20261014-12';
+import {googleConsentMarkup,readGoogleConsent,writeGoogleConsent} from './analytics-preferences.js?v=20261014-13';
 import {coverMarkup,preparationMarkup,mapMarkup} from './entry.js?v=20261014-6';
 import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261014-7';
 import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261014-6';
