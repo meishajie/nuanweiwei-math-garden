@@ -1,7 +1,7 @@
-import {TOPICS} from './course-catalog.js?v=20261016-1';
-import {number,operation,calculate,formatValue,expressionText,symbol} from './course-math.js?v=20261016-1';
-import {validHelpState,newHelpState,MAX_HELP_MARKS} from './help-state.js?v=20261016-1';
-import {DIVISION_HELP_REVISION,divisionHintModel,longDivisionMarkup,divisionFullMarkup} from './division-help.js?v=20261016-1';
+import {TOPICS} from './course-catalog.js?v=20261016-2';
+import {number,operation,calculate,formatValue,expressionText,symbol} from './course-math.js?v=20261016-2';
+import {validHelpState,newHelpState,MAX_HELP_MARKS} from './help-state.js?v=20261016-2';
+import {DIVISION_HELP_REVISION,divisionHintModel,longDivisionMarkup,divisionFullMarkup} from './division-help.js?v=20261016-2';
 const places=['个位','十位','百位','千位','万位','十万位'];
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const step=(prompt,answer,note='',extra={})=>({prompt,answer:String(answer),note,...extra});

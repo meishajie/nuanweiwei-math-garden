@@ -1,5 +1,5 @@
-import {COURSE_MAP,TOPICS,courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261016-1';
-import {calculate} from './course-math.js?v=20261016-1';
+import {COURSE_MAP,TOPICS,courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261016-2';
+import {calculate} from './course-math.js?v=20261016-2';
 
 // Progress belongs to the chosen curriculum. A later station never unlocks a new unit.
 export function focusTopics(profile){

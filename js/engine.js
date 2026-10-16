@@ -1,10 +1,10 @@
-import {validHelpState} from './help-state.js?v=20261016-1';
-import * as old from './engine-legacy.js?v=20261016-1';
-import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261016-1';
-import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261016-1';
-import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot,usesDivision} from './course-progression.js?v=20261016-1';
-import {answerTotals} from './round-summary.js?v=20261016-1';
-export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261016-1';
+import {validHelpState} from './help-state.js?v=20261016-2';
+import * as old from './engine-legacy.js?v=20261016-2';
+import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261016-2';
+import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261016-2';
+import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot,usesDivision} from './course-progression.js?v=20261016-2';
+import {answerTotals} from './round-summary.js?v=20261016-2';
+export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261016-2';
 const equalTree=(a,b)=>a===b||(a&&b&&typeof a==='object'&&typeof b==='object'&&Array.isArray(a)===Array.isArray(b)&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>Object.hasOwn(b,k)&&equalTree(a[k],b[k])));
 const clone=x=>JSON.parse(JSON.stringify(x)),isCourse=q=>q?.format==='course-v1',lookup=id=>lookupCourseQuestion(id)||old.legacyLookup(id);
 export function stageStatus(state,id){return state.courseSettings?(state.stages[id]?.visits?'practicing':'new'):old.stageStatus(state,id);}
