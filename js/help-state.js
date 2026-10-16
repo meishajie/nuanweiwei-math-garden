@@ -7,6 +7,7 @@ export function validHelpState(h,questionId){
  for(const [key,max] of [['placeTens',10],['placeOnes',19],['moved',100],['cardMask',255],['orderReady',64],['trial',100]])if(h[key]!==undefined&&!count(h[key],max))return false;
  if(h.movedMarks!==undefined&&(!Array.isArray(h.movedMarks)||h.movedMarks.length>100||new Set(h.movedMarks).size!==h.movedMarks.length||!h.movedMarks.every(n=>count(n,99))))return false;
  if(h.manual!==undefined&&typeof h.manual!=='boolean')return false;
+ if(h.divisionRevision!==undefined&&h.divisionRevision!==3)return false;
  return h.answers===undefined||(Array.isArray(h.answers)&&h.answers.length<=64&&h.answers.every(v=>typeof v==='string'&&v.length<=60));
 }
 export function newHelpState(q){return {version:2,questionId:q.id,tier:1,step:0,marks:[],rounds:0,notice:''};}

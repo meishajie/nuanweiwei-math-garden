@@ -1,5 +1,5 @@
-import {COURSE_MAP,TOPICS,courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261014-4';
-import {calculate} from './course-math.js?v=20261014-4';
+import {COURSE_MAP,TOPICS,courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261016-1';
+import {calculate} from './course-math.js?v=20261016-1';
 
 // Progress belongs to the chosen curriculum. A later station never unlocks a new unit.
 export function focusTopics(profile){
@@ -10,6 +10,22 @@ export function focusTopics(profile){
 export function foundationTopics(profile){
  const focus=new Set(focusTopics(profile));
  return [...availableTopics(profile).filter(id=>!focus.has(id)).reverse(),...priorTopics(profile).reverse()];
+}
+// Count the work the child must do, including a division nested in a mixed task
+// and the inverse needed to find a missing multiplication factor.
+export function usesDivision(q){
+ const contains=e=>e.type==='operation'&&(e.op==='/'||contains(e.left)||contains(e.right));
+ return contains(q.expression)||(q.expression.op==='*'&&['left','right'].includes(q.blank));
+}
+export function divisionLimit(profile){
+ const p=courseProfile(profile.grade,profile);
+ return bankTopics(p).some(id=>['divide','remainder'].includes(TOPICS[id].family))?(p.grade===2||p.difficulty==='easy'?3:4):0;
+}
+export function supportTopics(profile){
+ const known=bankTopics(profile),focus=focusTopics(profile),foundation=foundationTopics(profile);
+ // Multiplication connects a division to equal groups and provides its check.
+ // The remaining choices are learned foundations; this never unlocks a unit.
+ return [...new Set([...focus.filter(id=>TOPICS[id].family==='multiply'),...foundation.filter(id=>TOPICS[id].family==='multiply'),...foundation.filter(id=>TOPICS[id].family==='addsub'),...known])];
 }
 export function levelPlan(profile,levelId){
  const p=courseProfile(profile.grade,profile);if(!Number.isInteger(levelId)||levelId<1||levelId>10)throw new RangeError('Invalid station');
@@ -24,7 +40,8 @@ export function levelPlan(profile,levelId){
  const focus=focusTopics(p),end=Math.min(focus.length,Math.max(1,Math.ceil(focus.length*(.5+.5*progress)))),core=focus.slice(0,end);
  const labels=['先算一算','熟悉方法','换个数试试','换种问法','把数拆开想','灵活用方法','多想一步','花园小任务','检查再作答','花园综合练习'];
  const label=easy&&levelId===6?'熟练算一算':labels[levelId-1];
- return {levelId,label,focus:core,missing,regroupCount,slots:[
+ const divisionPractice=focus.some(id=>['divide','remainder'].includes(TOPICS[id].family));
+ return {levelId,label,focus:core,missing,regroupCount,divisionPractice,divisionLimit:divisionLimit(p),support:supportTopics(p),slots:[
   {role:'warmup',form:'plain',floor:Math.max(0,floor-.12),ceiling:Math.min(1,floor+.22)},
   {role:'practice',form:forms[1],regroup:regroupCount>=4,floor,ceiling:Math.min(1,floor+.23)},
   {role:'practice',form:forms[2],regroup:regroupCount>=3,floor:Math.min(1,floor+.02),ceiling:Math.min(1,floor+.27)},
@@ -54,9 +71,11 @@ export function questionRanks(bank){
 }
 
 export function passesSlot(q,slot){
+ if(slot.noDivision&&usesDivision(q))return false;
  const e=q.expression,scalar=e.left.type==='number'&&e.right.type==='number';
  if(!scalar)return true;
  const t=TOPICS[q.topicId],a=e.left.value,b=e.right.value;
+ if(slot.support&&e.op==='*'&&Math.min(a.coefficient,b.coefficient)<=1)return false;
  if(t.family==='addsub'&&!a.scale&&!b.scale&&slot.numberFloor){const result=e.op==='+'?a.coefficient+b.coefficient:a.coefficient-b.coefficient;if(Math.max(a.coefficient,b.coefficient,result)<slot.numberFloor)return false;if(!['warmup','review'].includes(slot.role)&&e.op==='-'&&result<=2)return false;}
  if(q.profile.grade===1&&t.family==='addsub'&&t.max===20&&!['warmup','review'].includes(slot.role)){
   if(e.op==='-'&&(q.profile.difficulty!=='easy'||q.levelId>=5)&&(a.coefficient>19||b.coefficient>9))return false;

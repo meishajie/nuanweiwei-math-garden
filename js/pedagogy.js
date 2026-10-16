@@ -1,6 +1,7 @@
-import {TOPICS} from './course-catalog.js?v=20261014-4';
-import {number,operation,calculate,formatValue,expressionText,symbol} from './course-math.js?v=20261014-4';
-import {validHelpState,newHelpState,MAX_HELP_MARKS} from './help-state.js?v=20261014-6';
+import {TOPICS} from './course-catalog.js?v=20261016-1';
+import {number,operation,calculate,formatValue,expressionText,symbol} from './course-math.js?v=20261016-1';
+import {validHelpState,newHelpState,MAX_HELP_MARKS} from './help-state.js?v=20261016-1';
+import {DIVISION_HELP_REVISION,divisionHintModel,longDivisionMarkup,divisionFullMarkup} from './division-help.js?v=20261016-1';
 const places=['个位','十位','百位','千位','万位','十万位'];
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const step=(prompt,answer,note='',extra={})=>({prompt,answer:String(answer),note,...extra});
@@ -9,7 +10,9 @@ function exprOf(q){if(q.expression)return q.expression;if(q.kind==='cards')retur
 const scalar=e=>e?.left?.type==='number'&&e?.right?.type==='number';
 const fixed=(v,scale)=>{let s=formatValue(v);if(scale){if(!s.includes('.'))s+='.';s=s.padEnd(s.indexOf('.')+scale+1,'0');}return s;};
 function cardSolution(q){for(let m=1;m<2**q.deck.length;m++){const chosen=q.deck.filter((_,i)=>m&(1<<i));if(chosen.length===q.pickCount&&chosen.reduce((a,b)=>a+b,0)===q.target)return chosen;}return [];}
-function mixedSteps(e){const out=[];const walk=(n,path='r')=>{if(n.type==='number')return;walk(n.left,path+'L');walk(n.right,path+'R');out.push(step(`${formatValue(calculate(n.left))} ${symbol(n.op)} ${formatValue(calculate(n.right))} = ?`,formatValue(calculate(n)),'把这一步的结果放回算式。',{operationId:path}));};walk(e);return out;}
+function mixedSteps(e,q={}){const out=[];const walk=(n,path='r')=>{if(n.type==='number')return;walk(n.left,path+'L');walk(n.right,path+'R');const a=calculate(n.left),b=calculate(n.right);if(n.op==='/'&&!a.scale&&!b.scale){const model=divisionHintModel(a.coefficient,b.coefficient,q.grade||3);out.push(...model.steps.map((s,i)=>({...s,operationId:path,operationComplete:i===model.steps.length-1,divisionModel:model,divisionStep:i})));}else out.push(step(`${formatValue(a)} ${symbol(n.op)} ${formatValue(b)} = ?`,formatValue(calculate(n)),'把这一步的结果放回算式。',{operationId:path}));};walk(e);return out;}
+const containsDivision=e=>e?.type==='operation'&&(e.op==='/'||containsDivision(e.left)||containsDivision(e.right));
+const hasDivisionHelp=q=>containsDivision(exprOf(q))||(q.blank&&q.blank!=='result'&&exprOf(q)?.op==='*');
 function columnSteps(a,b,op){
  const out=[],width=Math.max(String(a).length,String(b).length),digits=String(a).padStart(width,'0').split('').reverse().map(Number);let carry=0;
  for(let i=0;i<width;i++){const x=digits[i],y=Math.floor(b/10**i)%10;
@@ -25,46 +28,28 @@ export function hintModel(q){
   const left=['a','left'].includes(q.blank),total=calculate(e),known=left?e.right:e.left;
   const inverse=e.op==='+'?operation('-',number(total),known):e.op==='-'?(left?operation('+',number(total),known):operation('-',known,number(total))):e.op==='*'?operation('/',number(total),known):(left?operation('*',number(total),known):operation('/',known,number(total)));
   const m=hintModel({...q,expression:inverse,blank:'result'}),relation=`${expressionText(inverse)} = ?`;
-  return {...m,direction:`${['*','/'].includes(e.op)?'乘除互相帮忙':'整体与部分互相帮忙'}。先用已知的数找问号，再放回原题检查。`,relation,full:[`换个想法：${relation}`,...m.full,'把找到的数放回原题，检查两边是否一样。']};
+  const totalText=formatValue(total),knownText=expressionText(known),found=formatValue(calculate(inverse)),check=`${left?found:expressionText(e.left)} ${symbol(e.op)} ${left?expressionText(e.right):found} = ${totalText}。把找到的数放回原题，两边一样。`;
+  const direction=e.op==='/'?(left?'要找原来一共有多少，用每份的数乘份数。':'要找每份有多少，用总数除以份数。'):e.op==='*'?`想：${knownText} × 几 = ${totalText}？用除法找问号。`:'先用已知的数找问号，再放回原题检查。';
+  return {...m,direction,relation,...(m.divisionHelp?{check}:{}),full:[`换个想法：${relation}`,...(m.divisionHelp?m.full.slice(0,-1):m.full),check]};
  }
  if(q.topicId==='laws'&&e.op==='+'&&e.left.type==='operation'&&e.left.op==='*'&&e.right.type==='operation'&&e.right.op==='*'&&JSON.stringify(e.left.left)===JSON.stringify(e.right.left)){
-  const strategy=operation('*',e.left.left,operation('+',e.left.right,e.right.right)),steps=mixedSteps(strategy);
+  const strategy=operation('*',e.left.left,operation('+',e.left.right,e.right.right)),steps=mixedSteps(strategy,q);
   return {direction:'找相同的因数，另外两部分先合起来。试试乘法分配律。',relation:`${expressionText(e)} = ${expressionText(strategy)}`,activity:{kind:'order',expression:strategy},steps,full:[`相同的因数保留：${expressionText(e)} = ${expressionText(strategy)}`,...steps.map(s=>solvedStep(s))]};
  }
  if(!scalar(e)){
-  const steps=mixedSteps(e),hasBrackets=/[（(]/.test(q.text||expressionText(e));
-  return {direction:hasBrackets?'先看括号，按算式结构一步步算。点选这次先算的部分。':'先乘除，后加减；同级从左往右。点选这次先算的部分。',activity:{kind:'order',expression:e},steps,full:[...steps.map(s=>solvedStep(s)),'每次只替换刚算好的部分，最后验算。']};
+  const steps=mixedSteps(e,q),hasBrackets=/[（(]/.test(q.text||expressionText(e)),full=[];
+  for(const s of steps){if(s.divisionModel){if(s.divisionStep===0)full.push(...s.divisionModel.full);}else full.push(solvedStep(s));}
+  return {direction:hasBrackets?'先看括号，按算式结构一步步算。点选这次先算的部分。':'先乘除，后加减；同级从左往右。点选这次先算的部分。',activity:{kind:'order',expression:e},steps,full:[...full,'每次只替换刚算好的部分，最后验算。']};
  }
  const a=e.left.value,b=e.right.value,x=a.coefficient,y=b.coefficient,steps=[];let activity=null,direction='先看清数字与符号，一次只算一步。';
+ if(e.op==='/'&&!a.scale&&!b.scale)return divisionHintModel(x,y,grade);
  if(grade===1&&!a.scale&&!b.scale&&Math.max(x,y)<=20){
   const target=e.op==='+'?x+y:x-y;
   direction=e.op==='+'?'紫色是原来的，金色是新来的。把两组放在一起数一数。':'先看原来的数量，拿走的留下划线，再数还剩多少。';
   activity={kind:'frame',a:x,b:y,op:e.op,total:e.op==='+'?target:x,target,capacity:Math.min(MAX_HELP_MARKS,Math.ceil(Math.max(1,e.op==='+'?target:x)/10)*10)};
   steps.push(step(e.op==='+'?'合在一起，一共有多少颗？':'拿走以后，还剩多少颗？',target));
- }else if(grade<=2&&['*','/'].includes(e.op)&&!a.scale&&!b.scale&&y<=9&&x<=99){
-  if(e.op==='*'){
-   direction='每队一样多。每摆好一队，就多了同样多的数量。';activity={kind:'groups',groups:y,each:x,total:x*y};steps.push(step(`${y} 队，每队 ${x} 颗，一共多少？`,x*y));
-  }else {
-   const quotient=Math.floor(x/y),remainder=x%y;
-   if(quotient>9){
-    const tens=Math.floor(x/10)*10,batch=tens%y===0?tens:Math.floor(quotient/10)*10*y,rest=x-batch;
-    direction='先拆成能整除的大份，再处理剩下的。把两次的商合起来。';
-    activity={kind:'divide',strategy:'partition',groups:y,total:x,batch,rest};
-    steps.push(step(`${batch} ÷ ${y} = ?`,batch/y,'先算大的一份。'));
-    steps.push(step(`${rest} ÷ ${y}，商几？`,Math.floor(rest/y),'再算剩下的一份。'));
-    steps.push(step(`${batch/y} + ${Math.floor(rest/y)} = ?`,quotient,'两份的商合起来。'));
-    if(remainder)steps.push(step(`还剩几颗？`,remainder,'余数比除数小。'));
-   }else if(x<=20&&y<=4&&remainder===0){
-    direction=`一共有 ${x} 颗，平均分给 ${y} 队。点一次，就给每队同时分一颗。`;
-    activity={kind:'divide',strategy:'share',groups:y,total:x};steps.push(step('每队分到多少颗？',quotient));
-   }else {
-    direction=`${q.story?'换个角度看算式：':''}每 ${y} 颗装一包。想一想 ${y} 的乘法，怎样装得最多，又不会超过 ${x} 颗？包数就是商，剩下的是余数。`;
-    activity={kind:'divide',strategy:'group',groups:y,each:y,total:x};
-    steps.push(step(`每 ${y} 颗装一包，最多能装几包？`,quotient,'用乘法找不超过总数的最大整组。'));
-    steps.push(step(`${y} × ${quotient} = ?`,y*quotient,'这是所有整包的数量。'));
-    steps.push(step(`${x} − ${y*quotient} = ?`,remainder,remainder?`剩下 ${remainder} 颗，不够再装一包。`:'刚好装完，没有余数。'));
-   }
-  }
+ }else if(grade<=2&&e.op==='*'&&!a.scale&&!b.scale&&y<=9&&x<=99){
+  direction='每队一样多。每摆好一队，就多了同样多的数量。';activity={kind:'groups',groups:y,each:x,total:x*y};steps.push(step(`${y} 队，每队 ${x} 颗，一共多少？`,x*y));
  }else if(a.scale||b.scale){
   const scale=Math.max(a.scale,b.scale);
   if(e.op==='*'){direction='先按整数乘，再数两个因数一共有几位小数。';steps.push(step(`${x} × ${y} = ?`,x*y,'先得到整数部分积。',{partial:true}));steps.push(step('两个数一共有几位小数？',a.scale+b.scale,'从积的右边数出相应的小数位。'));}
@@ -75,10 +60,6 @@ export function hintModel(q){
   direction=y<10?'从个位开始乘，满十向前进。每算好一位，就把这一位写下来。':'把乘数拆成整十和个位，分别算部分积，再相加。';
   if(y<10){let carry=0;for(let i=0;i<String(x).length;i++){const digit=Math.floor(x/10**i)%10,n=digit*y+carry;steps.push(step(`${places[i]}：${digit} × ${y}${carry?` + ${carry}（进位）`:''} = ?`,n,`写 ${n%10}${n>=10?`，向前进 ${Math.floor(n/10)}`:''}。`,{place:i,written:n%10,carry:Math.floor(n/10)}));carry=Math.floor(n/10);}if(carry)steps.push(step(`最后把进位写在${places[String(x).length]}：`,carry,'',{place:String(x).length,written:carry}));}
   else {const tens=Math.floor(y/10)*10,ones=y%10;steps.push(step(`${x} × ${ones} = ?`,x*ones,'先用个位相乘。',{partial:true}));steps.push(step(`${x} × ${tens} = ?`,x*tens,'整十的部分积从十位写起。',{partial:true}));steps.push(step('把两个部分积加起来。',x*y,'用较接近的整十数估一估。',{final:true}));}
- }else if(e.op==='/'){
-  direction=y>=10?'先估一估商几，用商乘回除数；大了调小，再相减、落下一位。':'从高位开始：商、乘、减、落。不够商一时，商零占位。';
-  let remainder=0,started=false;const digits=String(x).split('').map(Number);
-  for(let i=0;i<digits.length;i++){const current=remainder*10+digits[i],quotient=Math.floor(current/y);if(!started&&quotient===0&&i<digits.length-1){remainder=current;continue;}started=true;steps.push(step(`这一位：${current} ÷ ${y}，商几？`,quotient,`${y} × 商不能超过 ${current}。`,{division:'商',column:i,current}));steps.push(step(`乘回去：${quotient} × ${y} = ?`,quotient*y,'',{division:'乘',column:i}));remainder=current-quotient*y;steps.push(step(`相减：${current} − ${quotient*y} = ?`,remainder,i<digits.length-1?`落下下一位 ${digits[i+1]}，与余下的数合起来。`:`余下 ${remainder}，小于除数 ${y}。`,{division:'减',column:i}));if(i<digits.length-1)steps.push(step(`落下 ${digits[i+1]}：${remainder} 个十和 ${digits[i+1]} 个一，合起来是？`,remainder*10+digits[i+1],'接着用这个数试商。',{division:'落',column:i+1}));}
  }else {
   direction=e.op==='+'?'相同数位对齐，从个位开始，注意进位。':'从个位开始，不够减时向前借；遇到零，要继续向前借。';
   if(grade===1){direction=e.op==='+'?'先看几个十和几个一。把同样大小的单位放在一起。':'先看个位够不够减。不够时，把一根十棒换成十个一。';activity={kind:'place',a:x,b:y,op:e.op};}
@@ -88,7 +69,7 @@ export function hintModel(q){
  const check=e.op==='/'?`${y} × ${Math.floor(x/y)} + ${x%y} = ${x}，检查余数小于除数。`:e.op==='*'?'可以交换两个因数，再检查一次。':'可以用相反的运算，放回原数检查。';
  return {direction,activity,steps,full:[...steps.map(s=>solvedStep(s)+(s.note?' '+s.note:'')),check]};
 }
-export function hintState(session,q){if(!validHelpState(session.hintState,q.id))session.hintState=newHelpState(q);else if(session.hintState.version!==2)session.hintState={...newHelpState(q),tier:session.hintState.tier};return session.hintState;}
+export function hintState(session,q){if(!validHelpState(session.hintState,q.id))session.hintState=newHelpState(q);else if(session.hintState.version!==2)session.hintState={...newHelpState(q),tier:session.hintState.tier};if(hasDivisionHelp(q)&&session.hintState.divisionRevision!==DIVISION_HELP_REVISION)session.hintState={...newHelpState(q),tier:session.hintState.tier,divisionRevision:DIVISION_HELP_REVISION};return session.hintState;}
 function choices(answer,limit=null){const n=Number(answer),scale=String(answer).split('.')[1]?.length||0,unit=10**-scale,values=[String(answer)];for(const offset of [1,-1,2,-2,10]){const v=Number((n+offset*unit).toFixed(scale));if(v>=0&&(limit===null||v<=limit)&&!values.includes(String(v)))values.push(String(v));if(values.length===4)break;}for(let v=0;values.length<4;v++)if(!values.includes(String(v))&&(limit===null||v<=limit))values.push(String(v));const shift=Math.abs(Math.round(n))%4;return [...values.slice(shift),...values.slice(0,shift)];}
 // Every dot is counted. Larger quantities use labelled tens instead of clipping dots.
 function quantity(n,color='purple'){return n<=20?`<span class="quantity-dots ${color}" aria-label="${n} 颗">${Array.from({length:n},()=>'<i aria-hidden="true">●</i>').join('')||'<small>还没有</small>'}</span>`:`<span class="quantity-bundles ${color}" aria-label="${Math.floor(n/10)} 个十和 ${n%10} 个一">${Array.from({length:Math.floor(n/10)},()=>'<b>10</b>').join('')}${Array.from({length:n%10},()=>'<i>●</i>').join('')}</span>`;}
@@ -107,17 +88,17 @@ function groupMarkup(a,h){
 }
 function divisionGroupMarkup(a,h,m){
  if(a.strategy==='partition')return `<div class="division-split"><div><small>一共有</small><strong>${a.total}</strong></div><span>拆成</span><div><strong>${a.batch}</strong><small>先除以 ${a.groups}</small></div><span>和</span><div><strong>${a.rest}</strong><small>再除以 ${a.groups}</small></div></div><div class="division-facts">${m.steps.slice(0,h.step).map(s=>`<p>${safe(solvedStep(s))}</p>`).join('')}</div>`;
- const quotient=Math.floor(a.total/a.each),trial=h.trial||0,used=trial*a.each,rest=a.total-used,options=quotient>=9?[7,8,9]:[Math.max(1,quotient-1),quotient,quotient+1].filter((n,i,all)=>all.indexOf(n)===i),rotate=quotient%options.length,candidates=[...options.slice(rotate),...options.slice(0,rotate)];
- return `<div class="division-total">一共有 <strong>${a.total}</strong> 颗<span>每包 ${a.each} 颗</span></div><p class="division-trial-label">用乘法试一试，选一个包数：</p><div class="division-trials">${candidates.map(n=>`<button class="secondary" data-action="hint-trial" data-value="${n}" aria-pressed="${trial===n}" ${h.step>0?'disabled':''}>${n} 包</button>`).join('')}</div>${trial?`<div class="division-trial-result ${rest<0?'trial-too-many':''}"><strong>${a.each} × ${trial} = ${used}</strong><p>${rest<0?`超过 ${a.total} 了，少装一包试试。`:rest>=a.each?`还剩 ${rest} 颗，还能再装一包，试试多一点。`:`${rest?`还剩 ${rest} 颗，不够再装一包。`:'刚好装完。'}找到了，最多 ${trial} 包。`}</p></div>${rest>=0?`<div class="filled-packs" aria-label="${trial}个完整包，每包${a.each}颗">${Array.from({length:trial},(_,i)=>`<div class="filled-pack"><span class="pack-dots" aria-hidden="true">${Array.from({length:a.each},()=>'<i>●</i>').join('')}</span><small>第 ${i+1} 包 · ${a.each} 颗</small></div>`).join('')}</div><section class="quantity-tray remainder-tray"><h3>${rest<a.each?'余下':'还没装'} · ${rest} 颗</h3>${quantity(rest,'gold')}</section>`:''}`:'<p class="division-empty-note">不用一颗颗分，先想想乘法口诀。</p>'}<button class="text-button" data-action="hint-reset">重新试一试</button>`;
+ const quotient=Math.floor(a.total/a.each),trial=h.trial||0,used=trial*a.each,rest=a.total-used,options=quotient===0?[0,1,2]:quotient>=9?[7,8,9]:[Math.max(1,quotient-1),quotient,quotient+1].filter((n,i,all)=>all.indexOf(n)===i),rotate=quotient%options.length,candidates=[...options.slice(rotate),...options.slice(0,rotate)];
+ return `<div class="division-total">一共有 <strong>${a.total}</strong> 颗<span>每包 ${a.each} 颗</span></div><p class="division-trial-label">用乘法试一试，选一个包数：</p><div class="division-trials">${candidates.map(n=>`<button class="secondary" data-action="hint-trial" data-value="${n}" aria-pressed="${trial===n}" ${h.step>0?'disabled':''}>${n} 包</button>`).join('')}</div>${trial||h.step>0?`<div class="division-trial-result ${rest<0?'trial-too-many':''}"><strong>${a.each} × ${trial} = ${used}</strong><p>${rest<0?`超过 ${a.total} 了，少装一包试试。`:rest>=a.each?`还剩 ${rest} 颗，还能再装一包，试试多一点。`:`${rest?`还剩 ${rest} 颗，不够再装一包。`:'刚好装完。'}找到了，最多 ${trial} 包。`}</p></div>${rest>=0?`<div class="filled-packs" aria-label="${trial}个完整包，每包${a.each}颗">${Array.from({length:trial},(_,i)=>`<div class="filled-pack"><span class="pack-dots" aria-hidden="true">${Array.from({length:a.each},()=>'<i>●</i>').join('')}</span><small>第 ${i+1} 包 · ${a.each} 颗</small></div>`).join('')}</div><section class="quantity-tray remainder-tray"><h3>${rest<a.each?'余下':'还没装'} · ${rest} 颗</h3>${quantity(rest,'gold')}</section>`:''}`:'<p class="division-empty-note">不用一颗颗分，先想想乘法口诀。</p>'}<button class="text-button" data-action="hint-reset">重新试一试</button>`;
 }
 function columnMarkup(a,h,m){
  const done=m.steps.slice(0,h.step),numeric=done.filter(s=>s.place!==undefined),width=Math.max(a.a.replace('.','').length,a.b.replace('.','').length),digits=Array.from({length:Math.max(width,...numeric.map(s=>s.place+1))},(_,i)=>numeric.find(s=>s.place===i)?.written??'·').reverse().join(''),last=done.at(-1),complete=h.step>=m.steps.length;
- if(a.kind==='longDivision')return `<div class="long-work" aria-label="商随步骤写出"><span class="long-quotient">${done.filter(s=>s.division==='商').map(s=>safe(s.answer)).join('')||'?'}</span><span>${safe(a.b)}</span><span class="long-dividend">${safe(a.a)}</span><div class="division-lines">${done.map(s=>`<div class="division-line division-${s.division}"><small>${s.division}</small><span>${s.division==='乘'?'− ':s.division==='落'?'↓ ':''}${safe(s.answer)}</span></div>`).join('')}</div></div><div class="division-route">${['商','乘','减','落'].map(w=>`<span class="${m.steps[h.step]?.division===w?'current':''}">${w}</span>`).join('')}</div>${last?.division==='减'?`<p class="place-note">${safe(last.note)}</p>`:''}`;
+ if(a.kind==='longDivision')return longDivisionMarkup(a,m.steps,h.step);
  let shown=numeric.length?digits:'?';if(a.decimal)shown=complete?m.steps.at(-1).answer:'?';else if(done.some(s=>s.final))shown=done.find(s=>s.final).answer;
  return `<div class="hint-column" aria-label="随步骤填写的竖式"><span class="column-annotation">${last?.borrowed?last.topDigits.slice().reverse().join(' '):last?.carry?`进 ${last.carry} ↙`:''}</span><span>${safe(a.a)}</span><span class="hint-column-bottom">${safe(a.op)} ${safe(a.b)}</span>${done.filter(s=>s.partial).map(s=>`<span class="partial-product">${safe(s.answer)}</span>`).join('')}<span class="hint-column-result">${safe(shown)}</span></div>${a.decimal?`<p class="place-note">${a.op==='×'?`积有 ${complete?a.scale:'?'} 位小数`:'小数点对齐，末尾补零'}</p>`:''}${last?.carry?`<p class="place-note">写 ${last.written}，向${places[last.place+1]}进 ${last.carry}</p>`:''}${last?.borrowed?'<p class="place-note">借位后，上面这一列变成 '+last.topDigits[last.place]+'。</p>':''}`;
 }
-function simplifiedTree(e,done,path='r'){if(e.type==='number')return e;if(done.some(s=>s.operationId===path))return number(calculate(e));return {...e,left:simplifiedTree(e.left,done,path+'L'),right:simplifiedTree(e.right,done,path+'R')};}
-function orderMarkup(a,h,m){const root=simplifiedTree(a.expression,m.steps.slice(0,h.step)),current=m.steps[h.step];const draw=(n,path='r')=>n.type==='number'?safe(formatValue(n.value)):scalar(n)?`<button class="order-piece ${path===current?.operationId?'next-operation':''}" data-action="hint-order" data-value="${path}" aria-pressed="${h.orderReady===h.step+1&&path===current?.operationId}">${safe(expressionText(n))}</button>`:`<span class="order-expression">(${draw(n.left,path+'L')} ${symbol(n.op)} ${draw(n.right,path+'R')})</span>`;return `<div class="order-work" aria-label="选择先计算的部分">${draw(root)}</div>${current?'<p>点一下高亮部分，再算这一小步。</p>':'<p>每一步的结果都放回去了。</p>'}`;}
+function simplifiedTree(e,done,path='r'){if(e.type==='number')return e;if(done.some(s=>s.operationId===path&&s.operationComplete!==false))return number(calculate(e));return {...e,left:simplifiedTree(e.left,done,path+'L'),right:simplifiedTree(e.right,done,path+'R')};}
+function orderMarkup(a,h,m){const root=simplifiedTree(a.expression,m.steps.slice(0,h.step)),current=m.steps[h.step];const draw=(n,path='r')=>n.type==='number'?safe(formatValue(n.value)):scalar(n)?`<button class="order-piece ${path===current?.operationId?'next-operation':''}" data-action="hint-order" data-value="${path}" aria-pressed="${h.orderReady===h.step+1&&path===current?.operationId}">${safe(expressionText(n))}</button>`:`<span class="order-expression">(${draw(n.left,path+'L')} ${symbol(n.op)} ${draw(n.right,path+'R')})</span>`;const division=current?.divisionModel;return `<div class="order-work" aria-label="选择先计算的部分">${draw(root)}</div>${current?(h.orderReady===h.step+1?'<p>这部分选好了，先完成它。</p>':'<p>点一下高亮部分，再算这一小步。</p>'):'<p>每一步的结果都放回去了。</p>'}${division?.activity.kind==='longDivision'?longDivisionMarkup(division.activity,division.steps,current.divisionStep):''}`;}
 function activityMarkup(a,h,m){
  if(a.kind==='frame')return frameMarkup(a,h);
  if(a.kind==='divide'&&a.strategy!=='share')return divisionGroupMarkup(a,h,m);
@@ -136,11 +117,11 @@ export function hintMarkup(session,q){
  if(h.tier===1)content+='<button class="primary" data-action="hint-tier" data-value="2">动手试一试</button>';
  if(h.tier===2){content+=activityMarkup(model.activity,h,model);
   if(current){const limit=(q.grade||1)===1?(TOPICS[q.topicId]?.max??(Math.max(Number(current.answer),q.a||0,q.b||0,q.result||0)<=5&&q.levelId===1?5:Math.max(Number(current.answer),q.a||0,q.b||0,q.result||0)<=10?10:Math.max(Number(current.answer),q.a||0,q.b||0,q.result||0)<=20?20:100)):null;
-   content+=`<div class="helper-step"><p class="helper-step-count">第 ${h.step+1} / ${model.steps.length} 步</p><h3>${safe(current.prompt)}</h3><div class="work-answers">${model.activity.kind==='divide'&&model.activity.strategy==='group'&&h.step===0?'':choices(current.answer,limit).map(v=>`<button class="secondary" data-action="hint-answer" data-value="${safe(v)}" ${model.activity.kind==='order'&&h.orderReady!==h.step+1?'disabled':''}>${safe(v)}</button>`).join('')}</div></div>`;
+   content+=`<div class="helper-step"><p class="helper-step-count">第 ${h.step+1} / ${model.steps.length} 步</p>${current.guide?`<p class="division-guide">${safe(current.guide)}</p>`:''}<h3>${safe(current.prompt)}</h3><div class="work-answers">${model.activity.kind==='divide'&&model.activity.strategy==='group'&&h.step===0?'':choices(current.answer,current.division==='商'?9:limit).map(v=>`<button class="secondary" data-action="hint-answer" data-value="${safe(v)}" ${model.activity.kind==='order'&&h.orderReady!==h.step+1?'disabled':''}>${safe(v)}</button>`).join('')}</div></div>`;
   }else if(model.activity.kind!=='cards')content+='<p class="helper-finished">这些步骤完成啦！回到原题，把你的答案告诉暖尾尾。</p>';
   content+=`<p class="hint-notice" role="status">${safe(h.notice)}</p>${h.step?`<details class="helper-history"><summary>刚才算过的 ${h.step} 步</summary><ol>${model.steps.slice(0,h.step).map(s=>`<li>${safe(solvedStep(s))} ${safe(s.note)}</li>`).join('')}</ol></details>`:''}<button class="text-button" data-action="hint-tier" data-value="3">一起看完整方法</button>`;
  }
- if(h.tier===3)content+=`<ol class="worked-steps">${model.full.map(line=>`<li>${safe(line)}</li>`).join('')}</ol><button class="secondary" data-action="hint-tier" data-value="2">回到动手试</button>`;
+ if(h.tier===3)content+=`${model.divisionHelp?divisionFullMarkup(model):`<ol class="worked-steps">${model.full.map(line=>`<li>${safe(line)}</li>`).join('')}</ol>`}<button class="secondary" data-action="hint-tier" data-value="2">回到动手试</button>`;
  const original=q.format==='course-v1'?q.text:q.kind==='cards'?`选 ${q.pickCount} 张卡，凑出 ${q.target}`:q.kind==='chain'?q.terms.map((n,i)=>(i?symbol(q.ops[i-1])+' ':'')+n).join(' '):`${q.blank==='a'?'?':q.a} ${symbol(q.op)} ${q.blank==='b'?'?':q.b} = ${q.blank==='result'?'?':q.result}`;
  return `<div class="guided-help"><div class="help-original"><small>原题</small>${q.story?`<span class="help-story">${safe(q.story)}</span>`:''}<strong>${safe(original)}</strong><p>这里动手练，回原题再提交。</p></div><div class="help-content" tabindex="-1">${content}</div></div>`;
 }
@@ -156,9 +137,9 @@ export function handleHint(session,q,action,value){
  if(action==='hint-reset'){h.rounds=0;h.moved=0;h.movedMarks=[];h.marks=[];h.step=0;h.answers=[];h.orderReady=0;h.trial=0;h.notice='';}
  if(action==='hint-unbundle'&&a.kind==='place'){h.placeTens??=Math.floor(a.a/10);h.placeOnes??=a.a%10;if(h.placeTens>0&&h.placeOnes<=9){h.placeTens--;h.placeOnes+=10;}}
  if(action==='hint-bundle'&&a.kind==='place'&&h.placeOnes>=10){h.placeTens++;h.placeOnes-=10;}
- if(action==='hint-trial'&&a.kind==='divide'&&a.strategy==='group'&&h.step===0&&Number.isInteger(i)&&i>=1&&i<=100){h.trial=i;const rest=a.total-i*a.each;if(rest>=0&&rest<a.each){h.rounds=i;h.answers=[m.steps[0].answer];h.step=1;h.notice=m.steps[0].note;}else h.notice=rest<0?'有点多了，试小一点。':'还可以多装一包。';}
+ if(action==='hint-trial'&&a.kind==='divide'&&a.strategy==='group'&&h.step===0&&Number.isInteger(i)&&i>=0&&i<=100){h.trial=i;const rest=a.total-i*a.each;if(rest>=0&&rest<a.each){h.rounds=i;h.answers=[m.steps[0].answer];h.step=1;h.notice=m.steps[0].note;}else h.notice=rest<0?'有点多了，试小一点。':'还可以多装一包。';}
  if(action==='hint-card'&&a.kind==='cards'&&Number.isInteger(i)&&i>=0&&i<a.deck.length){const mask=h.cardMask||0,bit=1<<i;if((mask&bit)||mask.toString(2).replaceAll('0','').length<a.pickCount)h.cardMask=mask^bit;}
  if(action==='hint-order'&&a.kind==='order'&&m.steps[h.step]){if(value===m.steps[h.step].operationId){h.orderReady=h.step+1;h.notice='选好了，现在算这一小步。';}else h.notice='这次先沿着高亮的一步来。';}
- if(action==='hint-answer'&&h.tier===2&&m.steps[h.step]&&(a.kind!=='order'||h.orderReady===h.step+1)){if(Number(value)===Number(m.steps[h.step].answer)){if(a.kind==='divide'&&a.strategy==='group'&&h.step===0){h.trial=Number(value);h.rounds=Number(value);}h.notice=m.steps[h.step].note||'这一步完成啦！';h.answers=m.steps.slice(0,h.step+1).map(s=>s.answer);h.step++;}else h.notice='再看看这一小步。';}
+ if(action==='hint-answer'&&h.tier===2&&m.steps[h.step]&&(a.kind!=='order'||h.orderReady===h.step+1)){if(Number(value)===Number(m.steps[h.step].answer)){if(a.kind==='divide'&&a.strategy==='group'&&h.step===0){h.trial=Number(value);h.rounds=Number(value);}const current=m.steps[h.step];h.notice=current.note||'这一步完成啦！';h.answers=m.steps.slice(0,h.step+1).map(s=>s.answer);h.step++;if(a.kind==='order'&&current.operationComplete===false&&m.steps[h.step]?.operationId===current.operationId)h.orderReady=h.step+1;}else {const current=m.steps[h.step],divisor=current.divisionModel?.activity.b??a.b;if(current.division==='商'&&Number.isInteger(i)&&i>=0&&i<=9){const product=Number(divisor)*i;h.notice=product>current.current?`${divisor} × ${i} = ${product}，超过 ${current.current} 了，试小一点。`:`${divisor} × ${i} = ${product}，还剩 ${current.current-product}，还能再分一份，试大一点。`;}else h.notice='再看看这一小步。';}}
  return h;
 }

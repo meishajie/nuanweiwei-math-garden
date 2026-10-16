@@ -1,10 +1,10 @@
-import {validHelpState} from './help-state.js?v=20261014-6';
-import * as old from './engine-legacy.js?v=20261014-4';
-import {courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261014-4';
-import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261014-4';
-import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot} from './course-progression.js?v=20261014-4';
-import {answerTotals} from './round-summary.js?v=20261014-4';
-export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261014-4';
+import {validHelpState} from './help-state.js?v=20261016-1';
+import * as old from './engine-legacy.js?v=20261016-1';
+import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261016-1';
+import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261016-1';
+import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot,usesDivision} from './course-progression.js?v=20261016-1';
+import {answerTotals} from './round-summary.js?v=20261016-1';
+export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261016-1';
 const equalTree=(a,b)=>a===b||(a&&b&&typeof a==='object'&&typeof b==='object'&&Array.isArray(a)===Array.isArray(b)&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>Object.hasOwn(b,k)&&equalTree(a[k],b[k])));
 const clone=x=>JSON.parse(JSON.stringify(x)),isCourse=q=>q?.format==='course-v1',lookup=id=>lookupCourseQuestion(id)||old.legacyLookup(id);
 export function stageStatus(state,id){return state.courseSettings?(state.stages[id]?.visits?'practicing':'new'):old.stageStatus(state,id);}
@@ -30,6 +30,7 @@ export function beginSession(state,id,options={}){
   for(const form of [...new Set([slot.form,...(['left','right'].includes(slot.form)?['left','right']:[]),'plain'])]){const q=take(pool.filter(q=>q.presentation===form),slot);if(q)return q;}
   return null;
  };
+ const chooseSupport=slot=>{for(const topic of plan.support){const q=choose([topic],{...slot,noDivision:true,support:true});if(q)return q;}return null;};
  const observations=Object.values(state.topicRecords||{}).filter(r=>r.textbook===profile.textbook&&r.grade===profile.grade&&bankTopics(profile).includes(r.topicId)&&r.needReview&&state.completedQuestions-r.lastSeenAt>=3);
  // Reserve the final task so it cannot be spent in the middle. For tiny pools,
  // expand upward within learned content until all six different tasks can be fitted.
@@ -39,16 +40,22 @@ export function beginSession(state,id,options={}){
  for(const extra of [0,.12,.24,.4,.6,1]){
   used.clear();questions.length=0;review=null;
   const checkpoint=take(finalPool,{...finalSlot,ceiling:Math.min(1,finalSlot.ceiling+extra),preferMax:true});if(!checkpoint)continue;
+  // A due review owns a slot and its share of the division budget before the
+  // new practice is drawn, so an early task cannot spend that share.
+  let heldReview=null;for(const observation of observations){heldReview=choose([observation.topicId],{...plan.slots[3],floor:0});if(heldReview){review=observation;break;}}
   let coreSlot=0;
-  for(const original of plan.slots.slice(0,5)){const slot=['practice','transfer'].includes(original.role)?{...original,maxDemand:questionDemand(checkpoint)}:original;let q;
+  for(const original of plan.slots.slice(0,5)){const budgetSpent=questions.filter(usesDivision).length+Number(usesDivision(checkpoint))+Number(questions.length<3&&heldReview&&usesDivision(heldReview)),quotaFull=plan.divisionLimit>0&&budgetSpent>=plan.divisionLimit,slot={...original,...(['practice','transfer'].includes(original.role)?{maxDemand:questionDemand(checkpoint)}:{}),noDivision:plan.divisionLimit===0||quotaFull||(original.role==='warmup'&&plan.divisionPractice)};let q;
    if(slot.role==='warmup'){
-    for(const topic of foundationTopics(profile)){q=choose([topic],slot);if(q)break;}
+    if(plan.divisionPractice)q=chooseSupport(slot);
+    for(const topic of foundationTopics(profile)){if(q)break;q=choose([topic],slot);}
     q||=choose(plan.focus,slot)||choose(focusTopics(profile),slot);
    }else if(slot.role==='review'){
-    for(const observation of observations){q=choose([observation.topicId],{...slot,floor:0});if(q){review=observation;break;}}
+    q=heldReview;
+    if(!q&&plan.divisionPractice){const foundation=foundationTopics(profile),topics=[...new Set([...foundation.filter(id=>TOPICS[id].family==='addsub'),...foundation])];for(const topic of topics){q=choose([topic],{...slot,noDivision:true});if(q)break;}q||=chooseSupport(slot);}
     q||=choose(plan.focus,slot)||choose(focusTopics(profile),slot);
    }else {
     const topic=plan.focus[coreSlot++%plan.focus.length];q=choose([topic],slot)||choose(plan.focus,slot)||choose(focusTopics(profile),slot);
+    if(!q&&quotaFull)q=chooseSupport(slot);
    }
    if(!q)break;
    q.review=slot.role==='review';questions.push(q);

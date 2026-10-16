@@ -1,9 +1,9 @@
-import {stickerVisitMarkup} from './album-gallery.js?v=20261014-6';
-import {icon,emblem} from './art.js?v=20261014-4';
-import {companionMarkup} from './character-reactions.js?v=20261014-4';
-import {guardianBadgeMarkup,TREASURE_THEMES} from './adventure.js?v=20261014-4';
-import {galleryMarkup} from './album-gallery.js?v=20261014-6';
-import {createWorld,advanceWorld,worldMarkup} from './expression-world.js?v=20261014-6';
+import {stickerVisitMarkup} from './album-gallery.js?v=20261016-1';
+import {icon,emblem} from './art.js?v=20261016-1';
+import {companionMarkup} from './character-reactions.js?v=20261016-1';
+import {guardianBadgeMarkup,TREASURE_THEMES} from './adventure.js?v=20261016-1';
+import {galleryMarkup} from './album-gallery.js?v=20261016-1';
+import {createWorld,advanceWorld,worldMarkup} from './expression-world.js?v=20261016-1';
 
 export const CONGRATS_MS=5500,OPENING_MS=1500,DANCE_MS=30000,WELCOME_DANCE_MS=10000;
 export const celebrationActive=s=>['congrats','opening','dance','world'].includes(s.phase);

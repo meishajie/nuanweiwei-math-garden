@@ -1,0 +1,24 @@
+/* Keep each division action short; the long-division grid shares decimal columns. */
+.division-guide{background:#f3edf8;border-radius:12px;padding:10px 12px;font-size:15px!important;line-height:1.75!important;color:#755685!important;margin:9px 0!important}
+.division-board{--division-digits:3;width:max-content;max-width:100%;margin:12px auto;padding:12px 14px;background:#f6f0fa;border:1px solid #e1d5e9;border-radius:14px;color:#735087;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:clamp(24px,5vw,30px);font-variant-numeric:tabular-nums;line-height:1.45}
+.division-grid-row{display:grid;grid-template-columns:minmax(1.9em,auto) repeat(var(--division-digits),1.3em);gap:0;min-height:1.45em}
+.division-grid-row>span{display:flex;align-items:center;justify-content:center;min-width:0;box-sizing:border-box}
+.division-grid-row>.division-side{justify-content:flex-end;padding-right:.45em;font-size:.85em}
+.division-dividend .division-digit{border-top:2px solid #aa8aba}
+.division-dividend [data-column="0"]{border-left:2px solid #aa8aba;border-top-left-radius:5px}
+.division-quotient{color:#68417f;font-weight:700}
+.division-places>.division-digit{font:11px system-ui,sans-serif;color:#a08aa9;align-self:end}
+.division-product{color:#9a7aab}
+.division-underlined{border-bottom:1.5px solid #b79bc7}
+.division-remainder{color:#816294}
+.division-result{text-align:center;font-size:19px!important;font-weight:700;margin:8px 0 14px!important;color:#735087!important;font-variant-numeric:tabular-nums}
+.worked-steps.division-cards{display:grid;gap:10px;list-style:none;padding:0;margin:12px 0;counter-reset:division-card}
+.worked-steps.division-cards>li{counter-increment:division-card;margin:0;padding:11px 13px;border:1px solid #e4d9eb;border-radius:13px;background:#fbf8fd;overflow-wrap:anywhere}
+.division-cards>li h3{display:flex;gap:8px;align-items:center;margin:0 0 4px!important;font-size:16px!important;line-height:1.5!important;color:#735087}
+.division-cards>li h3:before{content:counter(division-card);display:inline-grid;place-items:center;flex:none;width:25px;height:25px;background:#eadcf4;border-radius:50%;font-size:14px}
+.division-cards>li p{font-size:15px!important;line-height:1.8!important;margin:0!important}
+.division-check{font-size:14px!important;line-height:1.8!important;background:#edf4e9;border-radius:12px;padding:10px 12px;color:#60784f!important;margin:12px 0!important}
+.division-check>strong{display:block;font-size:14px}
+.division-full-column{margin:8px 0;color:#735087}
+.division-full-column summary{min-height:44px;padding:10px 0;font-size:15px;line-height:1.6;cursor:pointer}
+@media(max-width:440px){.division-board{padding:9px 10px}.division-cards>li p{font-size:14px!important}.division-guide{font-size:14px!important}.division-result{font-size:18px!important}}

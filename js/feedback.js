@@ -1,4 +1,4 @@
-import {icon} from './art.js?v=20261014-5';
+import {icon} from './art.js?v=20261016-1';
 
 // Created by the user in Tencent's console on 2026-10-14.
 export const FEEDBACK_PROJECT_ID = 802218;

@@ -1,6 +1,6 @@
-import { icon, emblem } from './art.js?v=20261014-4';
-import { LEVELS } from './curriculum.js?v=20261014-4';
-import { galleryMarkup } from './album-gallery.js?v=20261014-6';
+import { icon, emblem } from './art.js?v=20261016-1';
+import { LEVELS } from './curriculum.js?v=20261016-1';
+import { galleryMarkup } from './album-gallery.js?v=20261016-1';
 
 // Narrative is derived from earned cards. It never changes the learning state.
 export const MISSIONS = Object.freeze({

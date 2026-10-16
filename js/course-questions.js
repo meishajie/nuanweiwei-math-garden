@@ -1,7 +1,8 @@
-import * as v1 from './course-questions-v1.js?v=20261014-4';
-import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261014-4';
-import {decimal,number,operation,formatValue,expressionText,expressionSignature,calculate,valuesEqual} from './course-math.js?v=20261014-4';
-export {makeCourseQuestion} from './course-questions-v1.js?v=20261014-4';
+import * as v1 from './course-questions-v1.js?v=20261016-1';
+import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261016-1';
+import {decimal,number,operation,formatValue,expressionText,expressionSignature,calculate,valuesEqual} from './course-math.js?v=20261016-1';
+import {buildAnswerChoices,choiceLabels,validChoiceSet,shuffleAnswerChoices} from './answer-choices.js?v=20261016-1';
+export {makeCourseQuestion} from './course-questions-v1.js?v=20261016-1';
 const cache=new Map(),templates=new Map(),scopeCache=new Map(),forms=['plain','right','left','story'];
 function sourceQuestion(p,topic,serial){
  const t=TOPICS[topic],modes=p.difficulty==='easy'?['easy']:p.difficulty==='standard'?['easy','standard']:['easy','standard','challenge'];let mode=modes[(serial%7)%modes.length];
@@ -58,14 +59,34 @@ function fromBase(base,levelId,serial,form){
  q.text=q.blank==='result'?expressionText(e):`${q.blank==='left'?'?':expressionText(e.left)} ${ {'+':'+','-':'−','*':'×','/':'÷'}[e.op]} ${q.blank==='right'?'?':expressionText(e.right)} = ${formatValue(q.resultValue)}`;
  return q;
 }
-export function lookupCourseQuestion(id){if(String(id).startsWith('c1:'))return v1.lookupCourseQuestion(id);const parts=String(id).split(':');if(parts.length!==9||parts[0]!=='c2')return null;try{return makeProgressionQuestion({textbook:parts[1],grade:Number(parts[2]),phase:Number(parts[3]),difficulty:parts[4]},Number(parts[5]),parts[6],Number(parts[7]),parts[8]);}catch{return null;}}
+export function makeProgressionQuestionV3(profile,levelId,topicId,serial,form='plain'){
+ if(!forms.includes(form)||!Number.isInteger(levelId)||levelId<1||levelId>10)return null;
+ const p=courseProfile(profile.grade,profile),base=sourceQuestion(p,topicId,serial);return fromBaseV3(base,levelId,serial,form);
+}
+function fromBaseV3(base,levelId,serial,form){
+ if(!base)return null;const p=base.profile,topicId=base.topicId;
+ const q={...base,levelId,id:`c3:${p.textbook}:${p.grade}:${p.phase}:${p.difficulty}:${levelId}:${topicId}:${serial}:${form}`,blank:'result',presentation:form};
+ if(['right','left'].includes(form)&&!missingAllowed(q,form))return null;
+ if(form==='story'){q.story=storyFor(q);if(!q.story)return null;}
+ const e=q.expression;let value=q.resultValue;if(['left','right'].includes(form)){q.blank=form;value=e[form].value;}
+ q.answerValue=value;const raw=buildAnswerChoices(q);if(!validChoiceSet(q,raw))return null;
+ const candidates=shuffleAnswerChoices(q,raw),position=candidates.findIndex(v=>valuesEqual(v,value));
+ q.answer=position;q.choiceValues=candidates;q.choiceLabels=choiceLabels(q,candidates);
+ q.text=q.blank==='result'?expressionText(e):`${q.blank==='left'?'?':expressionText(e.left)} ${ {'+':'+','-':'−','*':'×','/':'÷'}[e.op]} ${q.blank==='right'?'?':expressionText(e.right)} = ${formatValue(q.resultValue)}`;
+ return q;
+}
+export function lookupCourseQuestion(id){if(String(id).startsWith('c1:'))return v1.lookupCourseQuestion(id);const parts=String(id).split(':');if(parts.length!==9||!['c2','c3'].includes(parts[0]))return null;try{const make=parts[0]==='c2'?makeProgressionQuestion:makeProgressionQuestionV3;return make({textbook:parts[1],grade:Number(parts[2]),phase:Number(parts[3]),difficulty:parts[4]},Number(parts[5]),parts[6],Number(parts[7]),parts[8]);}catch{return null;}}
 export function courseBank(profile,levelId){
  const p=courseProfile(profile.grade,profile);if(!Number.isInteger(levelId)||levelId<1||levelId>10)throw new RangeError('Invalid station');const profileKey=JSON.stringify(p),key=JSON.stringify([p,levelId]);if(cache.has(key))return cache.get(key);
  if(!templates.has(profileKey)){
-  const rows=[];for(const topic of scope(p))for(let i=0;i<800;i++){const base=sourceQuestion(p,topic,i);for(const form of forms){const q=fromBase(base,1,i,form);if(q)rows.push(q);}}
+  const rows=[];for(const topic of scope(p))for(let i=0;i<800;i++){const base=sourceQuestion(p,topic,i);for(const form of forms){const q=fromBaseV3(base,1,i,form);if(q)rows.push(q);}}
   if(templates.size>=2)templates.delete(templates.keys().next().value);templates.set(profileKey,rows);
  }
- const rows=templates.get(profileKey).map(q=>{const parts=q.id.split(':'),serial=Number(parts[7]),values=[...q.choiceValues];parts[5]=String(levelId);[values[0],values[q.answer]]=[values[q.answer],values[0]];const answer=(serial+levelId)%4;[values[0],values[answer]]=[values[answer],values[0]];return {...q,id:parts.join(':'),levelId,answer,choiceValues:values,choiceLabels:values.map(formatValue)};});
+ const rows=templates.get(profileKey).map(q=>{const parts=q.id.split(':'),serial=Number(parts[7]);parts[5]=String(levelId);const id=parts.join(':');
+  // The choice seed excludes the station so remapping a cached template and a
+  // direct C3 lookup reproduce identical values; only their order changes.
+  const next={...q,id,levelId},values=shuffleAnswerChoices(next,q.choiceValues),answer=values.findIndex(v=>valuesEqual(v,q.answerValue));return {...next,answer,choiceValues:values,choiceLabels:choiceLabels(next,values)};
+ });
  if(cache.size>=2)cache.delete(cache.keys().next().value);cache.set(key,rows);return rows;
 }
 

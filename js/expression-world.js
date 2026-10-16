@@ -1,5 +1,5 @@
-import {ALBUM_COVERS,getAlbum} from './album-gallery.js?v=20261014-6';
-import {icon} from './art.js?v=20261014-4';
+import {ALBUM_COVERS,getAlbum} from './album-gallery.js?v=20261016-1';
+import {icon} from './art.js?v=20261016-1';
 
 export const WORLD_SLIDE_MS=1500;
 export const WORLD_CHAPTERS=Object.freeze([

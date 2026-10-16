@@ -1,5 +1,5 @@
-import {ANALYTICS_CONFIG} from './analytics-config.js?v=20261014-12';
-import {startGoogleAnalytics} from './google-analytics.js?v=20261014-15';
+import {ANALYTICS_CONFIG} from './analytics-config.js?v=20261016-1';
+import {startGoogleAnalytics} from './google-analytics.js?v=20261016-1';
 
 export const UMAMI_ENDPOINT='https://gateway.umami.is/api/send';
 const HOST='meishajie.github.io',PATH='/nuanweiwei-math-garden/';
