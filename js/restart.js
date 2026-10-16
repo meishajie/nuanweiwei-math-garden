@@ -1,7 +1,7 @@
-import {createState} from './engine.js?v=20261016-2';
-import {createProfiles,GRADES,syncSettings} from './profiles.js?v=20261016-2';
-import {createRewards} from './play-rewards.js?v=20261016-2';
-import {courseProfile} from './course-catalog.js?v=20261016-2';
+import {createState} from './engine.js?v=20261016-3';
+import {createProfiles,GRADES,syncSettings} from './profiles.js?v=20261016-3';
+import {createRewards} from './play-rewards.js?v=20261016-3';
+import {courseProfile} from './course-catalog.js?v=20261016-3';
 
 export const GAME_KEYS=Object.freeze({profiles:'nuanweiwei.math-garden.profiles.v3',previous:'nuanweiwei.math-garden.profiles.v2',legacy:'nuanweiwei.math-garden.v1',rewards:'nuanweiwei.star-play.v1',recovery:'nuanweiwei.math-garden.profiles.v3.recovery'});
 const clone=value=>JSON.parse(JSON.stringify(value));

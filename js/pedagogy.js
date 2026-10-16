@@ -1,7 +1,8 @@
-import {TOPICS} from './course-catalog.js?v=20261016-2';
-import {number,operation,calculate,formatValue,expressionText,symbol} from './course-math.js?v=20261016-2';
-import {validHelpState,newHelpState,MAX_HELP_MARKS} from './help-state.js?v=20261016-2';
-import {DIVISION_HELP_REVISION,divisionHintModel,longDivisionMarkup,divisionFullMarkup} from './division-help.js?v=20261016-2';
+import {TOPICS} from './course-catalog.js?v=20261016-3';
+import {number,operation,calculate,formatValue,expressionText,symbol} from './course-math.js?v=20261016-3';
+import {validHelpState,newHelpState,MAX_HELP_MARKS} from './help-state.js?v=20261016-3';
+import {DIVISION_HELP_REVISION,divisionHintModel,longDivisionMarkup,divisionFullMarkup} from './division-help.js?v=20261016-3';
+import {lawHintPlan} from './laws-curriculum.js?v=20261016-3';
 const places=['个位','十位','百位','千位','万位','十万位'];
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const step=(prompt,answer,note='',extra={})=>({prompt,answer:String(answer),note,...extra});
@@ -31,6 +32,11 @@ export function hintModel(q){
   const totalText=formatValue(total),knownText=expressionText(known),found=formatValue(calculate(inverse)),check=`${left?found:expressionText(e.left)} ${symbol(e.op)} ${left?expressionText(e.right):found} = ${totalText}。把找到的数放回原题，两边一样。`;
   const direction=e.op==='/'?(left?'要找原来一共有多少，用每份的数乘份数。':'要找每份有多少，用总数除以份数。'):e.op==='*'?`想：${knownText} × 几 = ${totalText}？用除法找问号。`:'先用已知的数找问号，再放回原题检查。';
   return {...m,direction,relation,...(m.divisionHelp?{check}:{}),full:[`换个想法：${relation}`,...(m.divisionHelp?m.full.slice(0,-1):m.full),check]};
+ }
+ const law=lawHintPlan(q);
+ if(law){
+  const steps=mixedSteps(law.strategy,q),forms=[e,...law.transformations].map(expressionText);
+  return {direction:law.direction,relation:forms.join(' = '),activity:{kind:'order',expression:law.strategy},steps,full:[law.name,...forms.slice(1).map((text,i)=>`${forms[i]} = ${text}`),...steps.map(s=>solvedStep(s))]};
  }
  if(q.topicId==='laws'&&e.op==='+'&&e.left.type==='operation'&&e.left.op==='*'&&e.right.type==='operation'&&e.right.op==='*'&&JSON.stringify(e.left.left)===JSON.stringify(e.right.left)){
   const strategy=operation('*',e.left.left,operation('+',e.left.right,e.right.right)),steps=mixedSteps(strategy,q);

@@ -1,4 +1,4 @@
-import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261016-2';
+import {difficultySuggestion,dismissSuggestion} from './engine.js?v=20261016-3';
 
 const difficulties=['easy','standard','challenge'];
 const labels={easy:'轻松',standard:'标准',challenge:'挑战'};

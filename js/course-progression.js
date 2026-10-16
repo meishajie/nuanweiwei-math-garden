@@ -1,5 +1,6 @@
-import {COURSE_MAP,TOPICS,courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261016-2';
-import {calculate} from './course-math.js?v=20261016-2';
+import {COURSE_MAP,TOPICS,courseProfile,availableTopics,priorTopics,bankTopics} from './course-catalog.js?v=20261016-3';
+import {calculate} from './course-math.js?v=20261016-3';
+import {lawHintPlan} from './laws-curriculum.js?v=20261016-3';
 
 // Progress belongs to the chosen curriculum. A later station never unlocks a new unit.
 export function focusTopics(profile){
@@ -47,7 +48,7 @@ export function levelPlan(profile,levelId){
   {role:'practice',form:forms[2],regroup:regroupCount>=3,floor:Math.min(1,floor+.02),ceiling:Math.min(1,floor+.27)},
   {role:'review',form:'plain',floor:Math.max(0,floor-.1),ceiling:Math.min(1,floor+.25)},
   {role:'transfer',form:forms[4],regroup:regroupCount>=2,floor:Math.min(1,floor+.08),ceiling:Math.min(1,floor+.32)},
-  {role:'checkpoint',form:forms[5],regroup:regroupCount>=1,floor:Math.min(1,floor+.14),ceiling:Math.min(1,floor+.4)}
+  {role:'checkpoint',form:forms[5],regroup:regroupCount>=1,preferMax:!focus.includes('laws'),floor:Math.min(1,floor+.14),ceiling:Math.min(1,floor+.4)}
  ].map(slot=>({...slot,numberFloor}))};
 }
 function transfers(a,b,subtract=false){let carry=0,count=0;for(let i=0;i<Math.max(String(a).length,String(b).length);i++){const x=Math.floor(a/10**i)%10,y=Math.floor(b/10**i)%10;carry=Number(subtract?x-y-carry<0:x+y+carry>=10);count+=carry;}return count;}
@@ -62,10 +63,13 @@ export function questionDemand(q){
  if(e.op==='/'){let remainder=0,regroups=0,zeros=0;for(const digit of String(x)){const current=remainder*10+Number(digit);if(remainder)regroups++;if(current<y)zeros++;remainder=current%y;}work=size+.45*Math.log10(y+1)+.45*regroups+.2*zeros+(x%y?.65:0)-(y===1?2:0);}
  return work+walk(e.left)+walk(e.right)+(e.left.type==='operation'||e.right.type==='operation'?1.2:0);
  };
- return Math.round(walk(q.expression)*1000)/1000;
+ const law=lawHintPlan(q);
+ // A law can save work: score the useful route and recognising the rewrite,
+ // rather than charging for partial products that the child need not compute.
+ return Math.round((law?walk(law.strategy)+law.recognition:walk(q.expression))*1000)/1000;
 }
 export function questionRanks(bank){
- const ranks=new Map(),groups=new Map(),demands=new Map();for(const q of bank){const demand=questionDemand(q),group=groups.get(q.topicId)||{values:new Set(),rows:[]};group.values.add(demand);group.rows.push(q);groups.set(q.topicId,group);demands.set(q.id,demand);}
+ const ranks=new Map(),groups=new Map(),demands=new Map();for(const q of bank){const demand=questionDemand(q),key=String(q.id).startsWith('c5:')&&q.topicId==='laws'?`${q.topicId}:${q.lawKind}`:q.topicId,group=groups.get(key)||{values:new Set(),rows:[]};group.values.add(demand);group.rows.push(q);groups.set(key,group);demands.set(q.id,demand);}
  for(const group of groups.values()){const sorted=[...group.values].sort((a,b)=>a-b),lookup=new Map(sorted.map((v,i)=>[v,sorted.length===1?1:i/(sorted.length-1)]));for(const q of group.rows)ranks.set(q.id,lookup.get(demands.get(q.id)));}
  return ranks;
 }

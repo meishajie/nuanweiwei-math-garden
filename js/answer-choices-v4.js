@@ -1,6 +1,6 @@
-import {decimal,calculate} from './course-math.js?v=20261016-2';
-import {TOPICS,bankTopics} from './course-catalog.js?v=20261016-2';
-import {choiceDisplayScale,choiceLabels,shuffleAnswerChoices} from './answer-choices.js?v=20261016-2';
+import {decimal,calculate} from './course-math.js?v=20261016-3';
+import {TOPICS,bankTopics} from './course-catalog.js?v=20261016-3';
+import {choiceDisplayScale,choiceLabels,shuffleAnswerChoices} from './answer-choices.js?v=20261016-3';
 export {choiceLabels,shuffleAnswerChoices};
 
 const scalar=e=>e?.type==='number',mod=(n,d)=>(n%d+d)%d,gcd=(a,b)=>b?gcd(b,a%b):a;

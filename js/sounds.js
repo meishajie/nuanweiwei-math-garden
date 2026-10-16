@@ -16,7 +16,22 @@ export function getSoundScore(kind = 'correct') {
     ...[84,88,91,88,86,84,79,84].map((midi,i)=>bell(2.2+i*.32,midi,.65,.055)),
     ...pad(4.4,[60,64,67],1,.015)
   ];
+  if(kind==='perfect-victory')return [
+    // A little golden overture and a full cadence fit the same 5.5s scene.
+    ...[79,84,88,91].map((midi,i)=>bell(i*.12,midi,.48,.037)),
+    ...[72,76,79,84].flatMap((midi,i)=>[
+      tone('horn',.55+i*.3,midi,i===3?.95:.3,.062),
+      ...(i===3?[tone('horn',1.45,76,.95,.029)]:[])
+    ]),
+    ...pad(1.45,[60,64,67,72],2.05,.02),noise('shimmer',1.55,.9,.021,2700),
+    ...[84,88,91,96,91,88].map((midi,i)=>bell(2.6+i*.25,midi,.62,.045)),
+    ...pad(4.1,[60,64,67,72],1.4,.02),bell(4.25,84,1.25,.055),bell(4.4,91,1.1,.025)
+  ];
   if(kind==='chest-glint')return [bell(0,76,.4,.065),bell(.15,79,.55,.06),bell(.3,84,.8,.05),noise('shimmer',.45,.7,.02,2300)];
+  if(kind==='perfect-chest-glint')return [
+    ...[79,84,88,91].map((midi,i)=>bell(i*.12,midi,.75,.043)),
+    ...pad(.4,[60,64,67],1.1,.012),noise('shimmer',.48,.9,.019,2700)
+  ];
   if(kind==='world-film'){
     let start=0;const score=[];
     for(const [color,duration] of [['joy',9],['brave',7.5],['cozy',7.5],['dream',7.5]]){
@@ -42,20 +57,22 @@ export function getSoundScore(kind = 'correct') {
       bell(i*2+1,color.tune[i*2+1],.9,.034),tone('bass',i*2,chord[0]-12,1.45,.018)
     ]);
   }
-  if(kind==='dance'||kind==='welcome-dance'){
+  if(['dance','welcome-dance','perfect-dance','perfect-welcome-dance'].includes(kind)){
     // Original 120 BPM miniature: 10s welcome or 30s replay, plus 1.5s unveiling.
     // Both versions end with a four-note cadence before the next scene.
     const tune=[76,79,84,79,81,79,76,72,74,77,81,77,79,76,74,72];
     const chords=[[60,64,67],[57,60,64],[53,57,60],[55,59,62]];
-    const opening=getSoundScore('chest-glint'),count=kind==='welcome-dance'?20:60;
+    const perfect=kind.startsWith('perfect-'),opening=getSoundScore(perfect?'perfect-chest-glint':'chest-glint'),count=kind.endsWith('welcome-dance')?20:60;
     const beat=Array.from({length:count},(_,i)=>{
-      const at=1.5+i*.5,bar=Math.floor(i/4),chord=chords[Math.floor(i/4)%4],phrase=Math.floor(i/16);
-      const midi=i>=count-4?[79,76,74,72][i-(count-4)]:tune[i%16]+(phrase===1&&i%4===2?12:phrase===2&&i%4===3?-5:0);
+      const at=1.5+i*.5,chord=perfect&&i>=count-4?[60,64,67]:chords[Math.floor(i/4)%4],phrase=Math.floor(i/16);
+      const midi=i>=count-4?(perfect?[79,83,86,84]:[79,76,74,72])[i-(count-4)]:tune[i%16]+(phrase===1&&i%4===2?12:phrase===2&&i%4===3?-5:0);
       return [tone('pluck',at,midi,.43,i>=count-4?.063:.058),tone('bass',at,chord[i%2===0?0:2]-12,.3,.032),
        ...(i%4===0?pad(at,chord,1.85,.012):[]),
        {type:'kick',at,duration:.13,volume:i%4===0?.048:.025,fromFrequency:85,toFrequency:48},
        ...(i%2===1?[noise('clap',at,.085,.016,1300)]:[]),noise('shaker',at+.25,.06,.009,3400),
-       ...(i%8===6?[bell(at+.125,midi+12,.34,.029)]:[])
+       ...(i%8===6?[bell(at+.125,midi+12,.34,.029)]:[]),
+       ...(perfect&&i%8===0?[bell(at+.125,midi+12,.35,.025),bell(at+.25,midi+16,.24,.017)]:[]),
+       ...(perfect&&i===count-1?[bell(at,96,.5,.033),...pad(at,[60,64,67,72],.5,.013)]:[])
       ];
     }).flat();
     return [...opening,...beat];
@@ -77,6 +94,13 @@ export function getSoundScore(kind = 'correct') {
     tone('horn', .58, 69, .42, .11), tone('horn', 1.06, 74, 1.48, .105), tone('horn', 1.06, 66, 1.48, .04),
     ...pad(1.06, [50, 62, 66, 69], 1.94, .019), noise('shimmer', 1.08, .85, .028, 2400),
     bell(1.45, 86, .62, .068), bell(1.67, 90, .64, .058), bell(1.89, 93, .65, .048), bell(2.16, 86, .84, .06)
+  ];
+  if(kind==='perfect-round')return [
+    // A bright six-answer flourish; no extra wait is added to the round.
+    ...[76,79,84,88].map((midi,i)=>bell(i*.13,midi,.42,.055)),
+    tone('horn',.6,72,.3,.062),tone('horn',.95,79,.35,.064),tone('horn',1.35,84,1.1,.064),
+    tone('horn',1.35,76,1.1,.026),...pad(1.35,[60,64,67,72],1.65,.016),
+    noise('shimmer',1.4,.65,.019,2600),bell(2.1,91,.65,.039),bell(2.35,96,.65,.03)
   ];
   if (kind === 'treasure') {
     // An opening glint gives way to a G-major 120 BPM toy-percussion dance.

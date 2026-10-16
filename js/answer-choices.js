@@ -1,5 +1,5 @@
-import {decimal,calculate,formatValue,valuesEqual} from './course-math.js?v=20261016-2';
-import {bankTopics,TOPICS} from './course-catalog.js?v=20261016-2';
+import {decimal,calculate,formatValue,valuesEqual} from './course-math.js?v=20261016-3';
+import {bankTopics,TOPICS} from './course-catalog.js?v=20261016-3';
 
 // Choice generation is versioned by the C3 question ID. C1/C2 retain their
 // original values and order so that a paused journey can be restored exactly.

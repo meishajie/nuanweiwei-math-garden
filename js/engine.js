@@ -1,10 +1,13 @@
-import {validHelpState} from './help-state.js?v=20261016-2';
-import * as old from './engine-legacy.js?v=20261016-2';
-import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261016-2';
-import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261016-2';
-import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot,usesDivision} from './course-progression.js?v=20261016-2';
-import {answerTotals} from './round-summary.js?v=20261016-2';
-export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261016-2';
+import {validHelpState} from './help-state.js?v=20261016-3';
+import * as old from './engine-legacy.js?v=20261016-3';
+import {courseProfile,bankTopics,TOPICS} from './course-catalog.js?v=20261016-3';
+import {courseBank,courseSignature,lookupCourseQuestion,courseExplanation} from './course-questions.js?v=20261016-3';
+import {levelPlan,focusTopics,foundationTopics,questionRanks,questionDemand,passesSlot,usesDivision} from './course-progression.js?v=20261016-3';
+import {answerTotals} from './round-summary.js?v=20261016-3';
+import {startRoundTracking,prepareAnswerTracking,recordCompletedAnswer,nextQuestionTracking,ensureFinishSnapshot,restoreOptionalTracking} from './journey-records.js?v=20261016-3';
+import {checkpointPracticeTime,pausePracticeTime,completeQuestionTiming} from './practice-clock.js?v=20261016-3';
+export {createPracticeClock} from './practice-clock.js?v=20261016-3';
+export {QuestionPoolExhaustedError,markHint,currentQuestion} from './engine-legacy.js?v=20261016-3';
 const equalTree=(a,b)=>a===b||(a&&b&&typeof a==='object'&&typeof b==='object'&&Array.isArray(a)===Array.isArray(b)&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>Object.hasOwn(b,k)&&equalTree(a[k],b[k])));
 const clone=x=>JSON.parse(JSON.stringify(x)),isCourse=q=>q?.format==='course-v1',lookup=id=>lookupCourseQuestion(id)||old.legacyLookup(id);
 export function stageStatus(state,id){return state.courseSettings?(state.stages[id]?.visits?'practicing':'new'):old.stageStatus(state,id);}
@@ -16,7 +19,7 @@ export function createState(grade=1){return grade<4?old.createState(grade):{vers
 const stage=()=>({independent:0,supported:0,completedRounds:0,visits:0,reviewCursor:0,ready:false,steady:false,needReview:false,readyAt:null,readyRound:null,readyQuestionKeys:[],lastSeenAt:null,lastRound:null,lastQuestionId:null,recent:[]});
 function shuffle(rows,rng){const out=[...rows];for(let i=out.length-1;i>0;i--){const n=rng();if(!Number.isFinite(n)||n<0||n>=1)throw new RangeError('Invalid rng');const j=Math.floor(n*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out;}
 export function beginSession(state,id,options={}){
- if(!options.course&&!state.courseSettings&&state.grade!==4)return old.beginSession(state,id,options);
+ if(!options.course&&!state.courseSettings&&state.grade!==4){const session=old.beginSession(state,id,options);pausePracticeTime(state);startRoundTracking(state);return session;}
  if(!Number.isInteger(id)||id<1||id>10)throw new RangeError('Invalid level');
  const profile=courseProfile(state.grade,{...(options.course||state.courseSettings||{}),difficulty:options.difficulty||state.difficulty||'standard'}),bank=courseBank(profile,id),plan=levelPlan(profile,id),ranks=questionRanks(bank),rng=options.rng||Math.random;
  const seen=new Set([...(state.seenQuestionSignatures||[]),...(!state.courseVersion&&state.grade<4?old.legacySeen(state):[])]),questions=[],used=new Set();
@@ -39,7 +42,7 @@ export function beginSession(state,id,options={}){
  let review=null;
  for(const extra of [0,.12,.24,.4,.6,1]){
   used.clear();questions.length=0;review=null;
-  const checkpoint=take(finalPool,{...finalSlot,ceiling:Math.min(1,finalSlot.ceiling+extra),preferMax:true});if(!checkpoint)continue;
+  const checkpoint=take(finalPool,{...finalSlot,ceiling:Math.min(1,finalSlot.ceiling+extra),preferMax:finalSlot.preferMax!==false});if(!checkpoint)continue;
   // A due review owns a slot and its share of the division budget before the
   // new practice is drawn, so an early task cannot spend that share.
   let heldReview=null;for(const observation of observations){heldReview=choose([observation.topicId],{...plan.slots[3],floor:0});if(heldReview){review=observation;break;}}
@@ -66,23 +69,27 @@ export function beginSession(state,id,options={}){
  state.courseVersion=1;state.courseSettings={textbook:profile.textbook,phase:profile.phase};state.difficulty=profile.difficulty;state.rounds++;
  const s=state.stages[id]||(state.stages[id]=stage());s.visits++;
  state.session={mode:'course-v1',grade:state.grade,levelId:id,roundId:state.rounds,profile,index:0,questions,results:[],assisted:false,attempts:0,carriedAttempts:0,wrongChoices:[],feedback:null,completed:false,reviewEvidence:review?{topicId:review.topicId,anchorAt:review.lastSeenAt,anchorRound:review.lastRound}:null,hintState:null};
- state.seenQuestionSignatures=[...new Set([...seen,...questions.map(questionSignature)])];return state.session;
+ state.seenQuestionSignatures=[...new Set([...seen,...questions.map(questionSignature)])];pausePracticeTime(state);startRoundTracking(state);return state.session;
 }
 export function submitAnswer(state,choice){
- const s=state.session,q=old.currentQuestion(state);if(!isCourse(q))return old.submitAnswer(state,choice);
+ const s=state.session,q=old.currentQuestion(state);if(!isCourse(q)){
+  if(q&&!s.feedback?.correct&&Number.isInteger(choice)&&q.choices.includes(choice)&&!s.wrongChoices.includes(choice)){prepareAnswerTracking(state);checkpointPracticeTime(state);}
+  const result=old.submitAnswer(state,choice);if(result.correct&&!result.ignored){const time=completeQuestionTiming(state);recordCompletedAnswer(state,s.results.at(-1),time);}return result;
+ }
  if(!q||s.feedback?.correct||!Number.isInteger(choice)||!q.choices.includes(choice)||s.wrongChoices.includes(choice))return {correct:!!s.feedback?.correct,ignored:true};
+ prepareAnswerTracking(state);checkpointPracticeTime(state);
  s.attempts++;if(!isCorrectAnswer(q,choice)){s.wrongChoices.push(choice);old.markHint(state);s.feedback={correct:false};return {correct:false};}
  s.feedback={correct:true};const totals=answerTotals(state);state.answerStats={firstTry:totals.firstTry,retried:totals.retried,unknown:totals.unknown};state.answerStats[s.attempts===1?'firstTry':'retried']++;state.completedQuestions++;
  const result={questionId:q.id,levelId:q.levelId,review:q.review,correct:true,choice,independent:!s.assisted&&s.attempts===1,assisted:s.assisted,attempts:s.attempts,sequence:state.completedQuestions,roundId:s.roundId};s.results.push(result);
  const st=state.stages[q.levelId];st[result.independent?'independent':'supported']++;st.needReview=!result.independent;st.steady=false;st.lastSeenAt=result.sequence;st.lastRound=s.roundId;st.lastQuestionId=q.id;st.recent.push(result);st.recent=st.recent.slice(-12);
- state.topicRecords||={};const key=`${q.profile.textbook}:${q.grade}:${q.topicId}`,record=state.topicRecords[key]||{textbook:q.profile.textbook,grade:q.grade,topicId:q.topicId,independent:0,supported:0};record[result.independent?'independent':'supported']++;record.needReview=!result.independent;record.lastSeenAt=result.sequence;record.lastRound=s.roundId;state.topicRecords[key]=record;return {correct:true};
+ state.topicRecords||={};const key=`${q.profile.textbook}:${q.grade}:${q.topicId}`,record=state.topicRecords[key]||{textbook:q.profile.textbook,grade:q.grade,topicId:q.topicId,independent:0,supported:0};record[result.independent?'independent':'supported']++;record.needReview=!result.independent;record.lastSeenAt=result.sequence;record.lastRound=s.roundId;state.topicRecords[key]=record;const time=completeQuestionTiming(state);recordCompletedAnswer(state,result,time);return {correct:true};
 }
 export function advance(state){
- if(state.session?.mode!=='course-v1')return old.advance(state);
+ if(state.session?.mode!=='course-v1'){const previous=state.session?.index,completed=state.session?.completed,result=old.advance(state);if(state.session?.index!==previous)nextQuestionTracking(state);if(result.completed&&!completed&&(state.cards?.length||0)===10)ensureFinishSnapshot(state,{legacy:!result.newCard});return result;}
  const s=state.session;if(s.completed)return {completed:true,newCard:false};if(!s.feedback?.correct)return {completed:false,newCard:false};
- if(s.index<5){s.index++;s.assisted=false;s.attempts=0;s.carriedAttempts=0;s.wrongChoices=[];s.feedback=null;s.hintState=null;return {completed:false,newCard:false};}
+ if(s.index<5){s.index++;s.assisted=false;s.attempts=0;s.carriedAttempts=0;s.wrongChoices=[];s.feedback=null;s.hintState=null;nextQuestionTracking(state);return {completed:false,newCard:false};}
  s.completed=true;state.stages[s.levelId].completedRounds++;const newCard=!state.cards.includes(s.levelId);if(newCard)state.cards.push(s.levelId);state.cards.sort((a,b)=>a-b);
- state.coaching||={rounds:[],completedCount:0,lastSuggestedAt:0};const c=state.coaching;c.completedCount=(c.completedCount||0)+1;c.rounds.push({independent:s.results.filter(r=>r.independent).length,supported:s.results.filter(r=>!r.independent).length,difficulty:s.profile.difficulty,textbook:s.profile.textbook,phase:s.profile.phase});c.rounds=c.rounds.slice(-2);return {completed:true,newCard};
+ state.coaching||={rounds:[],completedCount:0,lastSuggestedAt:0};const c=state.coaching;c.completedCount=(c.completedCount||0)+1;c.rounds.push({independent:s.results.filter(r=>r.independent).length,supported:s.results.filter(r=>!r.independent).length,difficulty:s.profile.difficulty,textbook:s.profile.textbook,phase:s.profile.phase});c.rounds=c.rounds.slice(-2);if(state.cards.length===10)ensureFinishSnapshot(state,{legacy:!newCard});return {completed:true,newCard};
 }
 export function difficultySuggestion(state){
  const c=state.coaching;if(!c||c.rounds.length<2||c.completedCount-(c.lastSuggestedAt||0)<2)return null;
@@ -94,7 +101,7 @@ export function dismissSuggestion(state){if(state.coaching)state.coaching.lastSu
 export function resetQuestionCycle(state){if(!state.courseVersion)return old.resetQuestionCycle(state);state.questionCycle=(state.questionCycle||0)+1;state.seenQuestionSignatures=(state.session?.completed?[]:(state.session?.questions||[])).map(questionSignature);}
 export function hydrate(input,options={}){
  const grade=options.grade??1;let raw;try{if(typeof input==='string'&&input.length>4000000)throw Error();raw=typeof input==='string'?JSON.parse(input):input;}catch{return createState(grade);}
- if(!raw?.courseVersion){const state=grade<4?old.hydrate(raw,options):createState(grade);if(state.session&&validHelpState(raw?.session?.hintState,state.session.questions[state.session.index].id))state.session.hintState=clone(raw.session.hintState);if(grade===4&&['easy','standard','challenge'].includes(raw?.difficulty))state.difficulty=raw.difficulty;try{if(raw?.courseSettings){const p=courseProfile(grade,raw.courseSettings);state.courseSettings={textbook:p.textbook,phase:p.phase};}}catch{}return state;}
+ if(!raw?.courseVersion){const state=grade<4?old.hydrate(raw,options):createState(grade);if(state.session&&validHelpState(raw?.session?.hintState,state.session.questions[state.session.index].id))state.session.hintState=clone(raw.session.hintState);if(grade===4&&['easy','standard','challenge'].includes(raw?.difficulty))state.difficulty=raw.difficulty;try{if(raw?.courseSettings){const p=courseProfile(grade,raw.courseSettings);state.courseSettings={textbook:p.textbook,phase:p.phase};}}catch{}return restoreOptionalTracking(state,raw);}
  try{
   const check=b=>{if(!b)throw Error('Invalid course save');};const counter=v=>Number.isSafeInteger(v)&&v>=0&&v<=1000000000;check(raw.courseVersion===1&&raw.version===1&&raw.grade===grade&&[1,2,3,4].includes(grade));
   const p=courseProfile(grade,{...raw.courseSettings,difficulty:raw.difficulty}),state=clone(raw);check(Number.isSafeInteger(raw.completedQuestions)&&raw.completedQuestions>=0&&Number.isSafeInteger(raw.rounds)&&raw.rounds>=0);check(raw.settings&&typeof raw.settings.sound==='boolean'&&['system','reduce','full'].includes(raw.settings.motion));check(raw.stages&&Object.keys(raw.stages).length<=10&&Array.isArray(raw.cards)&&new Set(raw.cards).size===raw.cards.length);
@@ -108,6 +115,6 @@ export function hydrate(input,options={}){
   if(s.hintState&&!validHelpState(s.hintState,s.questions[s.index].id))s.hintState=null;
   if(state.topicRecords){check(typeof state.topicRecords==='object'&&!Array.isArray(state.topicRecords)&&Object.keys(state.topicRecords).length<=150);for(const [key,r] of Object.entries(state.topicRecords)){check(key===`${r.textbook}:${grade}:${r.topicId}`&&r.grade===grade&&['bnu','pep','su'].includes(r.textbook)&&counter(r.independent)&&counter(r.supported)&&r.independent+r.supported<=state.completedQuestions&&typeof r.needReview==='boolean'&&counter(r.lastSeenAt)&&r.lastSeenAt<=state.completedQuestions&&counter(r.lastRound)&&r.lastRound<=state.rounds);}}
   if(state.coaching){const c=state.coaching;check(counter(c.completedCount)&&c.completedCount<=state.rounds&&counter(c.lastSuggestedAt)&&c.lastSuggestedAt<=c.completedCount&&Array.isArray(c.rounds)&&c.rounds.length<=2);for(const r of c.rounds){courseProfile(grade,r);check(counter(r.independent)&&counter(r.supported)&&r.independent+r.supported===6);}}
-  check(!s.completed||(s.index===5&&s.feedback?.correct&&s.results.length===6));state.courseSettings={textbook:p.textbook,phase:p.phase};return state;
+  check(!s.completed||(s.index===5&&s.feedback?.correct&&s.results.length===6));state.courseSettings={textbook:p.textbook,phase:p.phase};return restoreOptionalTracking(state,raw);
  }catch{return createState(grade);}
 }

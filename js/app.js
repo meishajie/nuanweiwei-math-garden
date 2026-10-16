@@ -1,29 +1,29 @@
-import {parentGuideMarkup} from './course-guide.js?v=20261016-2';
-import {writeGoogleConsent} from './analytics-preferences.js?v=20261016-2';
-import {coverMarkup,preparationMarkup,mapMarkup} from './entry.js?v=20261016-2';
-import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose} from './celebration.js?v=20261016-2';
-import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261016-2';
-import {restartProgress,persistRestart} from './restart.js?v=20261016-2';
-import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261016-2';
-import {hintMarkup,handleHint} from './pedagogy.js?v=20261016-2';
-import {dismissSuggestion} from './engine.js?v=20261016-2';
-import {acceptDifficultySuggestion,undoDifficultySuggestion,difficultyCoachingMarkup} from './coaching.js?v=20261016-2';
-import { getLevels, difficultyRange } from './curriculum.js?v=20261016-2';
-import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261016-2';
-import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261016-2';
-import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261016-2';
-import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain } from './engine.js?v=20261016-2';
-import {columnMethod} from './column-method.js?v=20261016-2';
-import { t, locale } from './i18n.js?v=20261016-2';
-import { icon, emblem, magicArt } from './art.js?v=20261016-2';
-import { feedbackButtonMarkup, feedbackDialogMarkup } from './feedback.js?v=20261016-2';
-import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261016-2';
-import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261016-2';
-import { createEffects } from './effects.js?v=20261016-2';
-import { createSoundPlayer } from './sounds.js?v=20261016-2';
-import {roundSummaryMarkup,gardenSummaryMarkup} from './round-summary.js?v=20261016-2';
-import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261016-2';
-import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261016-2';
+import {parentGuideMarkup} from './course-guide.js?v=20261016-3';
+import {writeGoogleConsent} from './analytics-preferences.js?v=20261016-3';
+import {coverMarkup,preparationMarkup,mapMarkup} from './entry.js?v=20261016-3';
+import {createCelebration,celebrationActive,advanceCelebration,celebrationAction,celebrationMarkup,applyDancePose,celebrationSoundKind,perfectJourney} from './celebration.js?v=20261016-3';
+import {worldScene,worldAction,loadWorldImage,WORLD_SLIDE_MS} from './expression-world.js?v=20261016-3';
+import {restartProgress,persistRestart} from './restart.js?v=20261016-3';
+import {TEXTBOOKS,PHASES,courseProfile,phaseSummary} from './course-catalog.js?v=20261016-3';
+import {hintMarkup,handleHint} from './pedagogy.js?v=20261016-3';
+import {dismissSuggestion} from './engine.js?v=20261016-3';
+import {acceptDifficultySuggestion,undoDifficultySuggestion,difficultyCoachingMarkup} from './coaching.js?v=20261016-3';
+import { getLevels, difficultyRange } from './curriculum.js?v=20261016-3';
+import {createRewards, hydrateRewards, unlockForCards, creditCompletion, startPlay, getPlayStatus, recordCatch, finishPlay} from './play-rewards.js?v=20261016-3';
+import {playRewardMarkup, starPlayMarkup, starPlayEndMarkup, createStarPlayController} from './star-play.js?v=20261016-3';
+import {createProfiles, hydrateProfiles, syncSettings, selectGrade} from './profiles.js?v=20261016-3';
+import { createState, hydrate, beginSession, resetQuestionCycle, currentQuestion, markHint, submitAnswer, advance, stageStatus, explain, createPracticeClock } from './engine.js?v=20261016-3';
+import {columnMethod} from './column-method.js?v=20261016-3';
+import { t, locale } from './i18n.js?v=20261016-3';
+import { icon, emblem, magicArt } from './art.js?v=20261016-3';
+import { feedbackButtonMarkup, feedbackDialogMarkup } from './feedback.js?v=20261016-3';
+import { MISSIONS, treasureMarkup, treasureTeaserMarkup } from './adventure.js?v=20261016-3';
+import { getAlbum, albumDetailMarkup } from './album-gallery.js?v=20261016-3';
+import { createEffects } from './effects.js?v=20261016-3';
+import { createSoundPlayer } from './sounds.js?v=20261016-3';
+import {roundSummary,roundSummaryMarkup,gardenSummaryMarkup,journeySummary} from './round-summary.js?v=20261016-3';
+import {companionMarkup, createCharacterReactions} from './character-reactions.js?v=20261016-3';
+import { requestImmersive, toggleFullscreen, getInstallHint, getImmersiveStatus, initImmersive } from './immersive.js?v=20261016-3';
 
 const STORAGE_KEY = 'nuanweiwei.math-garden.v1';
 const PROFILE_KEY = 'nuanweiwei.math-garden.profiles.v3';
@@ -42,6 +42,7 @@ try {
 catch {storageIssue=t.saveError;}
 for(const grade of [1,2,3,4])profiles.grades[grade].courseSettings||={textbook:'bnu',phase:1};
 let state=profiles.grades[profiles.selectedGrade];
+const practiceClock=createPracticeClock();
 let rewards=createRewards(profiles.grades);
 try {rewards=hydrateRewards(localStorage.getItem(REWARD_KEY),profiles.grades);}catch {storageIssue=t.saveError;}
 let miniController=null;
@@ -119,6 +120,7 @@ document.addEventListener('click',event=>{
 },{capture:true});
 
 function save() {
+  practiceClock.checkpoint(state);
   syncSettings(profiles,state.settings);profiles.grades[profiles.selectedGrade]=state;
   if(protectOriginalStorage)return false;
   try {localStorage.setItem(REWARD_KEY,JSON.stringify(rewards));localStorage.setItem(PROFILE_KEY,JSON.stringify(profiles));if(!profiles.grades[1].courseVersion)localStorage.setItem(STORAGE_KEY,JSON.stringify(profiles.grades[1]));return true;}
@@ -140,6 +142,7 @@ function installCharacter(key,oldElement){
 function stopMagic() { cancelAnimationFrame(magic.frame); magic.frame = 0; }
 function stopTreasure() { cancelAnimationFrame(treasure.frame); treasure.frame=0;worldMusicRunning=false;worldSoundTicket++; }
 function go(next) {
+  const wasPracticing=practiceClock.isActive(state);practiceClock.pause(state);if(wasPracticing)save();
   coachingReceipt=null;
   if(view==='mini'&&next!=='mini'){stopMini();rewards=finishPlay(rewards,Date.now(),'left');save();}
   clearTimeout(completionTimer);completionTimer=0;
@@ -324,10 +327,10 @@ function soundInvitation() {
 }
 function magicPage() {
   const l=level(magic.id),name=magic.completedRound?`点亮${l.title}！`:magic.finale?t.finale:l.cardName;
-  return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div>${magic.completedRound?'<div class="magic-result-scroll">':''}<section class="magic-view ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?'我们点亮花园啦！':magic.paused?'等你准备好':'星光集合……'}</p></section>${magic.completedRound?roundSummaryMarkup(state.session)+coachingMarkup()+'</div>':''}<div class="magic-controls">${nextMagicAction()}${!magic.finished&&magic.paused?`<button class="secondary" data-action="magic-pause">${icon('play')}继续动画</button>`:''}<button class="secondary" data-action="nav" data-view="home">${icon('leaf')}回花园</button></div>`;
+  return `<div class="magic-header"><h1>${name}</h1><button class="text-button" data-action="nav" data-view="vault">${icon('back')}回宝藏库</button></div>${magic.completedRound?'<div class="magic-result-scroll">':''}<section class="magic-view ${magic.perfect?'magic-perfect':''} ${magic.paused||modal?'paused':''} ${reduceMotion()||magic.finished?'still':''}" data-perfect="${Boolean(magic.perfect)}" data-phase="${magic.finished?'complete':'gather'}" aria-label="${name}魔法场景"><img class="magic-backdrop" src="./assets/magic-garden-v2.webp" alt="月夜魔法花园">${magicArt(magic.id,magic.finale)}<div class="casting-ring" aria-hidden="true"><div class="casting-orbit">${Array.from({length:8},(_,i)=>`<span style="--glyph:${i}">${emblem(magic.finale?i+1:magic.id)}</span>`).join('')}</div></div><div class="spell-focus" aria-hidden="true">${emblem(magic.id,true)}</div><img class="casting-character" src="./assets/nuanweiwei-happy-safari.png" alt="暖尾尾施放你们的魔法" width="318" height="240"><p class="magic-story" aria-live="polite">${magic.finished?(magic.perfect?'6题都一次答对！':'我们点亮花园啦！'):magic.paused?'等你准备好':'星光集合……'}</p></section>${magic.completedRound?roundSummaryMarkup(state.session)+coachingMarkup()+'</div>':''}<div class="magic-controls">${nextMagicAction()}${!magic.finished&&magic.paused?`<button class="secondary" data-action="magic-pause">${icon('play')}继续动画</button>`:''}<button class="secondary" data-action="nav" data-view="home">${icon('leaf')}回花园</button></div>`;
 }
 function treasurePage() {
-  return celebrationMarkup({...treasure,paused:treasure.paused||Boolean(modal)},{reduced:reduceMotion(),statistics:gardenSummaryMarkup(state),mini:miniShortcut()});
+  return celebrationMarkup({...treasure,paused:treasure.paused||Boolean(modal)},{reduced:reduceMotion(),journeySummary:journeySummary(state),statistics:gardenSummaryMarkup(state),mini:miniShortcut()});
 }
 function modalView() {
  if(!modal)return '';
@@ -412,6 +415,11 @@ function render({preserveMagic=true,preserveScroll=preserveMagic,focusModal=fals
   if(view==='lesson')installCharacter(characterKey,oldCharacter);
   if(modal){document.querySelector('.shell')?.setAttribute('inert','');if(focusModal)queueMicrotask(()=>document.querySelector('.modal button')?.focus());}
   maintainMusic();
+  syncPracticeClock();
+}
+function syncPracticeClock(){
+ const active=view==='lesson'&&!document.hidden&&(!modal||modal==='hint')&&state.session&&!state.session.completed&&!state.session.feedback?.correct;
+ practiceClock.sync(state,Boolean(active));
 }
 function openModal(name) {sounds.stopEffects();effects.pause();miniController?.pause();if(!modal)modalReturnFocus=document.activeElement?.getAttribute('data-action');modal=name;render({focusModal:true});}
 function closeModal() {if(modal==='feedback'&&feedbackReturnModal==='settings'){feedbackReturnModal='';modal='settings';render();document.querySelector('[data-action="feedback"]')?.focus({preventScroll:true});return;}feedbackReturnModal='';if(view==='lesson'&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();miniController?.resume();const wasAlbum=modal==='album';modal='';if(!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused))){pauseScene(false);}render();if(wasAlbum&&view==='treasure'&&treasure.phase==='world')document.querySelector('[data-action="world-pause"]')?.focus();else if(wasAlbum)document.querySelector(`[data-action="album-open"][data-album="${albumReturnId||selectedAlbum}"]`)?.focus();else (document.querySelector(`[data-action="${modalReturnFocus}"]`)||document.querySelector('[data-action="settings"]'))?.focus();}
@@ -420,6 +428,7 @@ function enterImmersivePlay(){
  void pending.then(status=>{if(!status.immersive&&status.platform==='ios'&&!immersiveTipShown){immersiveTipShown=true;notify('想隐藏浏览器栏，可在小设置中添加主屏幕入口。');}});
 }
 function restartGarden(scope,grade){
+ practiceClock.pause(state);
  if(scope==='grade'&&protectOriginalStorage){notify('暂时无法安全保存原始记录，请先保留当前花园。');return;}
  const next=restartProgress(profiles,rewards,{scope,grade});
  try{persistRestart(localStorage,next,{scope,grade});}
@@ -434,9 +443,10 @@ function startLevel(id) {cardSelection=0;cardOrder=[];enterImmersivePlay();sound
 function startMagic(id,finale=false,completedRound=false) {
   clearTimeout(completionTimer);completionTimer=0;
   if(finale?!hasFinale():!state.cards.includes(Number(id)))return;
-  void requestImmersive();stopMagic();stopTreasure();effects.stop();sounds.stopEffects();effects.resume();sounds.resume({unlock:false});magic={id:Number(id),finale,completedRound,paused:false,finished:reduceMotion(),elapsed:0,last:0,frame:0};view='magic';modal='';render({preserveMagic:false});window.scrollTo({top:0,behavior:'instant'});
+  practiceClock.pause(state);const perfect=completedRound&&roundSummary(state.session).perfect;
+  void requestImmersive();stopMagic();stopTreasure();effects.stop();sounds.stopEffects();effects.resume();sounds.resume({unlock:false});magic={id:Number(id),finale,completedRound,perfect,paused:false,finished:reduceMotion(),elapsed:0,last:0,frame:0};view='magic';modal='';render({preserveMagic:false});window.scrollTo({top:0,behavior:'instant'});
   if(!reduceMotion())magic.frame=requestAnimationFrame(magicTick);
-  void chime('magic');effects.celebrate('magic',{origin:document.querySelector('.casting-character'),target:document.querySelector('.spell-focus')});
+  void chime(perfect?'perfect-round':'magic');effects.celebrate('magic',{origin:document.querySelector('.casting-character'),target:document.querySelector('.spell-focus')});
 }
 function magicTick(now) {
   if(view!=='magic'||reduceMotion()){stopMagic();return;}
@@ -444,7 +454,7 @@ function magicTick(now) {
   if(!magic.paused&&!document.hidden&&!modal)magic.elapsed+=Math.min(now-magic.last,150);
   magic.last=now;
   const story=document.querySelector('.magic-story');
-  if(!magic.paused&&story){const phrase=magic.elapsed<2500?'星光集合……':magic.elapsed<5500?'魔法准备好了！':magic.elapsed<9500?'我们点亮花园啦！':t.magicEnd;document.querySelector('.magic-view')?.setAttribute('data-phase',magic.elapsed<2500?'gather':magic.elapsed<5500?'charge':'release');if(story.textContent!==phrase)story.textContent=phrase;}
+  if(!magic.paused&&story){const phrase=magic.elapsed<2500?'星光集合……':magic.elapsed<5500?'魔法准备好了！':magic.elapsed<9500?(magic.perfect?'6题都一次答对！':'我们点亮花园啦！'):magic.perfect?'每一颗星，都一次点亮！':t.magicEnd;document.querySelector('.magic-view')?.setAttribute('data-phase',magic.elapsed<2500?'gather':magic.elapsed<5500?'charge':'release');if(story.textContent!==phrase)story.textContent=phrase;}
   if(magic.elapsed>=12000){magic.finished=true;render();return;}
   magic.frame=requestAnimationFrame(magicTick);
 }
@@ -465,7 +475,7 @@ async function toggleSound() {
   const refocusSound=document.activeElement?.getAttribute('data-action')==='sound';
   state.settings.sound=!state.settings.sound;save();sounds.setEnabled(state.settings.sound);
   if(state.settings.sound){sounds.resume();void sounds.unlock();soundUnavailable=false;maintainMusic();}
-  if(state.settings.sound&&!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused)||modal)){sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play('magic',{offset:magic.elapsed/1000});else if(view==='treasure'&&celebrationActive(treasure))playCelebrationSound();else void chime(view==='reward'?'reward':'correct');}
+  if(state.settings.sound&&!((view==='magic'&&magic.paused)||(view==='treasure'&&treasure.paused)||modal)){sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play(magic.perfect?'perfect-round':'magic',{offset:magic.elapsed/1000});else if(view==='treasure'&&celebrationActive(treasure))playCelebrationSound();else void chime(view==='reward'?'reward':'correct');}
   render();if(refocusSound)(document.querySelector('.modal [data-action="sound"]')||document.querySelector('[data-action="sound"]'))?.focus({preventScroll:true});
 }
 function poseCelebration(){
@@ -478,7 +488,7 @@ function playCelebrationSound(){
  if(treasure.phase==='world'&&!treasure.world.ready)return;
  if(treasure.phase==='world'&&worldMusicRunning)return;
  sounds.resume({unlock:false});sounds.stopMusic();
- const kind=treasure.phase==='world'?'world-film':treasure.phase==='congrats'?'victory':treasure.danceOnly?'dance':'welcome-dance';
+  const kind=celebrationSoundKind(treasure,journeySummary(state));
  const elapsed=treasure.phase==='world'?treasure.world.index*WORLD_SLIDE_MS+treasure.world.slideElapsed:treasure.phase==='congrats'?treasure.phaseElapsed:treasure.elapsed;
  if(treasure.phase==='world'){worldMusicRunning=true;const ticket=++worldSoundTicket;void sounds.play(kind,{offset:elapsed/1000}).then(ok=>{if(!ok&&ticket===worldSoundTicket)worldMusicRunning=false;});}
  else void sounds.play(kind,{offset:elapsed/1000});
@@ -511,7 +521,7 @@ function openTreasure() {
  if(!hasTreasure()||!celebrationAction(treasure,'open',{reduced:reduceMotion()}))return;
  stopTreasure();effects.stop();sounds.stopEffects();effects.resume();sounds.resume({unlock:false});
  render({preserveMagic:false});
- if(reduceMotion())void sounds.play('chest-glint');else{playCelebrationSound();runCelebration();}
+ if(reduceMotion())void sounds.play(perfectJourney(journeySummary(state))?'perfect-chest-glint':'chest-glint');else{playCelebrationSound();runCelebration();}
 }
 function treasureTick(now) {
  treasure.frame=0;
@@ -534,7 +544,7 @@ function pauseCelebration(paused){
  treasure.paused=paused;stopTreasure();pauseScene(paused);render();if(!paused)runCelebration();
 }
 function pauseScene(paused) {
-  if(paused){effects.pause();sounds.pause();}else{effects.resume();sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play('magic',{offset:magic.elapsed/1000});if(view==='treasure'&&celebrationActive(treasure))playCelebrationSound();}
+  if(paused){effects.pause();sounds.pause();}else{effects.resume();sounds.resume({unlock:false});if(view==='magic'&&!magic.finished)void sounds.play(magic.perfect?'perfect-round':'magic',{offset:magic.elapsed/1000});if(view==='treasure'&&celebrationActive(treasure))playCelebrationSound();}
 }
 function holdWorldPicture(target){
  if(view!=='treasure'||treasure.phase!=='world'||!target?.closest?.('.world-picture'))return;
@@ -572,7 +582,7 @@ app.addEventListener('click',event=>{
   if(action==='question-cycle'){resetQuestionCycle(state);save();startLevel(selectedLevel);return;}
   if(action==='prepare'){preparationBack=view==='cover'?'cover':'home';save();go('setup');return;}
   if(action==='setup-start'){const next=suggested();if(hasPaused()){selectedLevel=next;openModal('replace-session');}else startLevel(next);return;}
-  if(action==='grade'){const grade=Number(button.dataset.grade);if(![1,2,3,4].includes(grade)||grade===profiles.selectedGrade)return;save();selectGrade(profiles,grade);state=profiles.grades[grade];cardSelection=0;cardOrder=[];hintMode='';hintClosed=false;save();go('setup');return;}
+  if(action==='grade'){const grade=Number(button.dataset.grade);if(![1,2,3,4].includes(grade)||grade===profiles.selectedGrade)return;practiceClock.pause(state);save();selectGrade(profiles,grade);state=profiles.grades[grade];cardSelection=0;cardOrder=[];hintMode='';hintClosed=false;save();go('setup');return;}
   if(action==='nav'){go(button.dataset.view);return;}
   if(action==='intro'){enterImmersivePlay();selectedLevel=id;go('intro');return;}
   if(action==='begin'){if(hasPaused()){selectedLevel=id;openModal('replace-session');}else startLevel(id);return;}
@@ -642,7 +652,7 @@ app.addEventListener('click',event=>{
   if(action==='treasure-replay'){
    if(!celebrationAction(treasure,'replay',{reduced:reduceMotion()}))return;
    stopTreasure();effects.stop();sounds.stopEffects();render({preserveMagic:false});
-   if(reduceMotion())void sounds.play('chest-glint');else{playCelebrationSound();runCelebration();}return;
+   if(reduceMotion())void sounds.play(perfectJourney(journeySummary(state))?'perfect-chest-glint':'chest-glint');else{playCelebrationSound();runCelebration();}return;
   }
   if(action==='treasure-collection'){if(treasure.phase!=='keepsake')return;treasure.collection=!treasure.collection;render();return;}
   if(action==='treasure-theme'){
@@ -676,10 +686,12 @@ document.addEventListener('keydown',event=>{
   }
 });
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){characterController?.pause();effects.pause();sounds.pause();if(view==='treasure'&&celebrationActive(treasure)){treasure.paused=true;stopTreasure();render();}if(view==='magic'&&!magic.finished){magic.paused=true;updateMagicPause();}}else{if(!modal)characterController?.resume();maintainMusic();if(view==='lesson'&&!modal&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();}
+  if(document.hidden){practiceClock.pause(state);save();characterController?.pause();effects.pause();sounds.pause();if(view==='treasure'&&celebrationActive(treasure)){treasure.paused=true;stopTreasure();render();}if(view==='magic'&&!magic.finished){magic.paused=true;updateMagicPause();}}else{if(!modal)characterController?.resume();maintainMusic();if(view==='lesson'&&!modal&&state.session?.index===state.session?.questions?.length-1&&state.session?.feedback?.correct)scheduleRoundCompletion();}
+  syncPracticeClock();
 });
 window.addEventListener('pageshow',event=>{if(event.persisted){render({preserveMagic:false});}});
-window.addEventListener('pagehide',()=>{clearTimeout(completionTimer);completionTimer=0;stopCharacter();stopTreasure();if(view==='treasure'&&celebrationActive(treasure))treasure.paused=true;miniController?.destroy();miniController=null;save();effects.stop();sounds.stop();});
+window.addEventListener('pagehide',()=>{practiceClock.pause(state);clearTimeout(completionTimer);completionTimer=0;stopCharacter();stopTreasure();if(view==='treasure'&&celebrationActive(treasure))treasure.paused=true;miniController?.destroy();miniController=null;save();effects.stop();sounds.stop();});
 systemMotion.addEventListener('change',()=>{applyMotion();characterController?.setMotion(()=>reduceMotion()?'reduce':'full');if(reduceMotion()){effects.stop();if(view==='treasure'&&['opening','dance','world'].includes(treasure.phase)){if(treasure.phase!=='world')celebrationAction(treasure,'world',{reduced:true});treasure.paused=true;stopTreasure();sounds.stopEffects();render();}}if(view==='magic'&&reduceMotion()){stopMagic();magic.finished=true;render();}});
+setInterval(()=>{syncPracticeClock();if(practiceClock.isActive(state))save();},5000);
 save();
 render();

@@ -1,8 +1,13 @@
-import {createState, hydrate} from './engine.js?v=20261016-2';
+import {createState, hydrate} from './engine.js?v=20261016-3';
 
 export const GRADES = Object.freeze([1, 2, 3, 4]);
 const validGrade = value => GRADES.includes(value);
 const prefs = value => ({sound: value?.sound === true, motion: ['system','reduce','full'].includes(value?.motion) ? value.motion : 'system'});
+const equalTree=(a,b)=>a===b||(a&&b&&typeof a==='object'&&typeof b==='object'&&Array.isArray(a)===Array.isArray(b)&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>Object.hasOwn(b,k)&&equalTree(a[k],b[k])));
+function keepsJourney(next,previous){
+ const a=previous.journeyStats,b=next.journeyStats;
+ return (!a||(b&&b.total>=a.total&&b.elapsedMs>=a.elapsedMs&&b.unknownTiming>=a.unknownTiming&&b.unknownErrors>=a.unknownErrors&&b.retriedKnown>=a.retriedKnown&&a.byErrors.every((n,i)=>n<=(b.byErrors[i]||0))))&&(!previous.finishStats||equalTree(previous.finishStats,next.finishStats));
+}
 
 export function createProfiles(legacyRaw = null) {
   const first = hydrate(legacyRaw, {grade: 1, preserveQuestions:true});
@@ -34,7 +39,7 @@ export function hydrateProfiles(raw, legacyRaw = null) {
       && (old.stages[id]?.independent||0)>=s.independent
       && (old.stages[id]?.supported||0)>=s.supported);
     const later = old.completedQuestions>first.completedQuestions || old.cards.length>first.cards.length || old.rounds>first.rounds;
-    if(!explicitRestart&&!first.courseVersion&&later&&keepsCards&&keepsStages&&old.completedQuestions>=first.completedQuestions) profiles.grades[1]=old;
+    if(!explicitRestart&&!first.courseVersion&&later&&keepsCards&&keepsStages&&keepsJourney(old,first)&&old.completedQuestions>=first.completedQuestions) profiles.grades[1]=old;
     else if(!explicitRestart&&later) profiles.retainedLegacy=old;
     else if(!explicitRestart&&parsed.retainedLegacy) profiles.retainedLegacy=hydrate(parsed.retainedLegacy,{grade:1,preserveQuestions:true});
     syncSettings(profiles, profiles.settings);
